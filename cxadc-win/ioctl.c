@@ -242,6 +242,8 @@ VOID cx_evt_io_read(
                 return;
             }
 
+            RtlZeroMemory(&dev_ctx->dma_risc_page[page_no].va[page_off], len);
+
             count -= len;
             tgt_off += len;
             offset += len;
