@@ -25,7 +25,7 @@ VOID cx_evt_io_ctrl(
     _In_ ULONG ctrl_code)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PULONG out_buf, in_buf;
+    PLONG out_buf, in_buf;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfIoQueueGetDevice(queue));
 
     switch (ctrl_code)
@@ -39,7 +39,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "setting vmux to %d", *in_buf);
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting vmux to %d", *in_buf);
         dev_ctx->attrs.vmux = *in_buf;
         cx_set_vmux(dev_ctx);
         break;
@@ -66,7 +66,14 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "setting level to %d", *in_buf);
+        if (*in_buf < CX_IOCTL_LEVEL_MIN || *in_buf > CX_IOCTL_LEVEL_MAX)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid level %d", *in_buf);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting level to %d", *in_buf);
         dev_ctx->attrs.level = *in_buf;
         cx_set_level(dev_ctx);
         break;
@@ -93,7 +100,14 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "setting tenbit to %d", *in_buf);
+        if (*in_buf < CX_IOCTL_TENBIT_MIN || *in_buf > CX_IOCTL_TENBIT_MAX)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid tenbit %d", *in_buf);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting tenbit to %d", *in_buf);
         dev_ctx->attrs.tenbit = *in_buf;
         cx_set_tenbit(dev_ctx);
         break;
@@ -120,7 +134,14 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "setting sixdb to %d", *in_buf);
+        if (*in_buf < CX_IOCTL_SIXDB_MIN || *in_buf > CX_IOCTL_SIXDB_MAX)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid sixdb %d", *in_buf);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting sixdb to %d", *in_buf);
         dev_ctx->attrs.sixdb = *in_buf;
         cx_set_level(dev_ctx);
         break;
@@ -147,7 +168,14 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "setting center_center to %d", *in_buf);
+        if (*in_buf < CX_IOCTL_CENTER_OFFSET_MIN || *in_buf > CX_IOCTL_CENTER_OFFSET_MAX)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid center_offset %d", *in_buf);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting center_center to %d", *in_buf);
         dev_ctx->attrs.center_offset = *in_buf;
         cx_set_center_offset(dev_ctx);
         break;

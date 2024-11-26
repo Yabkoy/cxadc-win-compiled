@@ -9,7 +9,16 @@ This was made for use with the [decode](https://github.com/oyvindln/vhs-decode) 
 `cxadc-win-tool scan`  
 `cxadc-win-tool get \\.\cxadc0`  
 `cxadc-win-tool set \\.\cxadc0 vmux 1`  
-`cxadc-win-tool set \\.\cxadc1 level 20`
+`cxadc-win-tool set \\.\cxadc1 level 20`  
+
+See [cxadc-linux3](https://github.com/happycube/cxadc-linux3) for parameter descriptions.  
+Parameter       | Range | Default 
+----------------|-------|--------
+`vmux`          | `0-2`  | `2`
+`level`         | `0-31` | `16`
+`tenbit`        | `0-1`  | `0`
+`sixdb`         | `0-1`  | `0`
+`center_offset` | `0-63` | `0`
 
 ### Capture data to a file or pipe to `STDOUT` for compression
 > [!TIP]  

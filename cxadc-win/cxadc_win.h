@@ -15,16 +15,10 @@
 
 #include "common.h"
 
-#define SYMLINK_PATH            L"\\DosDevices\\cxadc"
+#define SYMLINK_PATH L"\\DosDevices\\cxadc"
 
-#define VENDOR_ID               0x14F1
-#define DEVICE_ID               0x8800
-
-#define DEFAULT_VMUX            2
-#define DEFAULT_LEVEL           16
-#define DEFAULT_TENBIT          0
-#define DEFAULT_SIXDB           0
-#define DEFAULT_CENTER_OFFSET   0
+#define VENDOR_ID    0x14F1
+#define DEVICE_ID    0x8800
 
 DRIVER_INITIALIZE DriverEntry;
 EVT_WDF_DRIVER_DEVICE_ADD cx_evt_device_add;

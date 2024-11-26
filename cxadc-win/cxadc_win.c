@@ -553,11 +553,11 @@ VOID cx_init_attrs(
     _In_ PDEVICE_CONTEXT dev_ctx
 )
 {
-    dev_ctx->attrs.vmux = DEFAULT_VMUX;
-    dev_ctx->attrs.level = DEFAULT_LEVEL;
-    dev_ctx->attrs.tenbit = DEFAULT_TENBIT;
-    dev_ctx->attrs.sixdb = DEFAULT_SIXDB;
-    dev_ctx->attrs.center_offset = DEFAULT_CENTER_OFFSET;
+    dev_ctx->attrs.vmux = CX_IOCTL_VMUX_DEFAULT;
+    dev_ctx->attrs.level = CX_IOCTL_LEVEL_DEFAULT;
+    dev_ctx->attrs.tenbit = CX_IOCTL_TENBIT_DEFAULT;
+    dev_ctx->attrs.sixdb = CX_IOCTL_SIXDB_DEFAULT;
+    dev_ctx->attrs.center_offset = CX_IOCTL_CENTER_OFFSET_DEFAULT;
 }
 
 NTSTATUS cx_check_dev_info(

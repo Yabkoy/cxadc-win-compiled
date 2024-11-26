@@ -57,8 +57,6 @@ NTSTATUS cx_init(
     cx_write(dev_ctx, CX_SRAM_CMDS_BASE + 12, CX_SRAM_RISC_QUEUE_BASE);
     cx_write(dev_ctx, CX_SRAM_CMDS_BASE + 16, 0x40);
 
-    dev_ctx->attrs.vmux &= 3;
-
     cx_set_vmux(dev_ctx);
 
     // allow full range
