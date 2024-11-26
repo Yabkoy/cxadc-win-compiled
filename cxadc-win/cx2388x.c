@@ -41,6 +41,9 @@ NTSTATUS cx_init(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+    // the following values & comments are from the Linux driver
+    // I don't fully understand what each value is doing, nor if/why they are required
+
     cx_init_risc(dev_ctx);
     cx_init_cdt(dev_ctx);
 
@@ -56,38 +59,57 @@ NTSTATUS cx_init(
 
     dev_ctx->attrs.vmux &= 3;
 
-    // the following values are from the Linux driver
-    // I don't fully understand what each value is doing, nor if/why they are required
     cx_set_vmux(dev_ctx);
+
+    // allow full range
     cx_write(dev_ctx, CX_OUTPUT_FORMAT, 0xF);
 
     cx_write(dev_ctx, CX_CONT_BRIGHT_CNTRL, 0xFF00);
+
+    // no of byte transferred from peripheral to fifo
+    // if fifo buffer < this, it will still transfer this no of byte
+    // must be multiple of 8, if not go haywire?
     cx_write(dev_ctx, CX_VBI_PACKET_CNTRL, (CX_CDT_BUF_LEN << 17) | (2 << 11));
+
+    // raw mode & byte swap << 8 (3 << 8 = swap)
     cx_write(dev_ctx, CX_COLOR_CNTRL, 0xE | (0xE << 4) | (0 << 8));
 
     cx_set_tenbit(dev_ctx);
 
+    // power down audio and chroma DAC+ADC
     cx_write(dev_ctx, CX_AFE_CFG_IO, 0x12);
+
+    // run risc
     cx_write(dev_ctx, CX_DEV_CNTRL2, 1 << 5);
+
+    // enable fifo and risc
     cx_write(dev_ctx, CX_VID_DMA_CNTRL, (1 << 7) | (1 << 3));
 
+    // set SRC to 8xfsc
     cx_write(dev_ctx, CX_SR_CONV, 0x20000);
+    
+    // set PLL to 1:1
     cx_write(dev_ctx, CX_PLL, 0x11000000);
+
+    // set vbi agc
     cx_write(dev_ctx, CX_ADC_SYNC_SLICER, 0);
     cx_write(dev_ctx, CX_AGC_BACK_VBI, (0 << 27) | (0 << 26) | (1 << 25) | (0x100 << 16) | (0xFFF << 0));
 
     cx_set_level(dev_ctx);
 
+    // for 'cooked' composite
     cx_write(dev_ctx, CX_AGC_SYNC_TIP1, (0x1C0 << 17) | (0 << 9) | (0 << 7) | (0xF << 0));
     cx_write(dev_ctx, CX_AGC_SYNC_TIP2, (0x20 << 17) | (0 << 9) | (0 << 7) | (0xF << 0));
-
     cx_set_center_offset(dev_ctx);
-
     cx_write(dev_ctx, CX_AGC_GAIN_ADJ1, (0xE0 << 17) | (0xE << 9) | (0 << 7) | (7 << 0));
     cx_write(dev_ctx, CX_AGC_GAIN_ADJ2, (0x20 << 17) | (2 << 7) | 0xF);
+
+    // set gain of agc but nto offset
     cx_write(dev_ctx, CX_AGC_GAIN_ADJ3, (0x28 << 16) | (0x28 << 8) | (0x50 << 0));
 
+    // i2c sda/scl set to high and use software control
     cx_write(dev_ctx, CX_I2C, 0x3);
+
     cx_write(dev_ctx, CX_VID_INT_MSK, CX_INTR_MASK);
 
     return status;
@@ -119,8 +141,13 @@ NTSTATUS cx_init_cdt(
         buf_ptr += CX_CDT_BUF_LEN;
     }
 
+    // size of one buffer - 1
     cx_write(dev_ctx, CX_DMA24_CNT1, CX_CDT_BUF_LEN / 8 - 1);
+
+    // ptr to cdt
     cx_write(dev_ctx, CX_DMA24_PTR2, CX_SRAM_CDT_BASE);
+
+    // size of cdt
     cx_write(dev_ctx, CX_DMA24_CNT2, CX_CDT_BUF_COUNT * 2);
 
     return status;
@@ -185,10 +212,17 @@ NTSTATUS cx_disable(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+    // turn off pci interrupt
     cx_write(dev_ctx, CX_PCI_INT_MSK, 0);
+
+    // turn off interrupt
     cx_write(dev_ctx, CX_VID_INT_MSK, 0);
     cx_write(dev_ctx, CX_VID_INT_STAT, ~(ULONG)0);
+
+    // disable fifo and risc
     cx_write(dev_ctx, CX_VID_DMA_CNTRL, 0);
+
+    // disable risc
     cx_write(dev_ctx, CX_DEV_CNTRL2, 0);
 
     return status;
@@ -255,6 +289,7 @@ VOID cx_set_vmux(
     _Inout_ PDEVICE_CONTEXT dev_ctx
 )
 {
+    // pal-B
     cx_write(dev_ctx, CX_INPUT_FORMAT, (dev_ctx->attrs.vmux << 14) | (1 << 13) | 1 | 0x10 | 0x10000);
 }
 
@@ -262,6 +297,7 @@ VOID cx_set_level(
     _Inout_ PDEVICE_CONTEXT dev_ctx
 )
 {
+    // control gain also bit 16
     cx_write(dev_ctx, CX_AGC_GAIN_ADJ4, 
        (dev_ctx->attrs.sixdb << 23) | (0 << 22) | (0 << 21) | (dev_ctx->attrs.level << 16) | (0xFF << 8) | (0 << 0));
 }
