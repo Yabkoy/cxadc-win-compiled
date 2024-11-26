@@ -272,9 +272,9 @@ NTSTATUS cx_evt_device_release_hardware(
     PAGED_CODE();
 
     dev_ctx = cx_device_get_ctx(dev);
-    if (dev_ctx->mmio) {
-        cx_stop_capture(dev_ctx);
-        cx_disable(dev_ctx);
+
+    if (dev_ctx->mmio)
+    {
         MmUnmapIoSpace(dev_ctx->mmio, dev_ctx->mmio_len);
         dev_ctx->mmio = NULL;
     }
@@ -312,18 +312,21 @@ NTSTATUS cx_evt_device_d0_exit(
     PAGED_CODE();
     dev_ctx = cx_device_get_ctx(dev);
 
+    cx_stop_capture(dev_ctx);
+    cx_disable(dev_ctx);
+
     switch (target_state)
     {
     case WdfPowerDeviceD1:
     case WdfPowerDeviceD2:
     case WdfPowerDeviceD3:
-        cx_disable(dev_ctx);
         break;
 
     case WdfPowerDevicePrepareForHibernation:
         break;
 
     case WdfPowerDeviceD3Final:
+        cx_reset(dev_ctx);
         break;
     }
 

@@ -20,6 +20,7 @@ __inline VOID cx_write(_Inout_ PDEVICE_CONTEXT dev_ctx, _In_ ULONG off, _In_ ULO
 
 NTSTATUS cx_init(_Inout_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_disable(_Inout_ PDEVICE_CONTEXT dev_ctx);
+NTSTATUS cx_reset(_Inout_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_cdt(_Inout_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_risc(_Inout_ PDEVICE_CONTEXT dev_ctx);
 

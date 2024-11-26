@@ -226,6 +226,26 @@ NTSTATUS cx_disable(
     return status;
 }
 
+NTSTATUS cx_reset(
+    _Inout_ PDEVICE_CONTEXT dev_ctx
+)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    // set agc registers back to default values
+    cx_write(dev_ctx, CX_AGC_BACK_VBI, (0xE0 << 16) | 0x555);
+    cx_write(dev_ctx, CX_ADC_SYNC_SLICER, (1 << 21) | (1 << 20) | (1 << 19) | (4 << 16) | (0x60 << 8) | 0x1C);
+    cx_write(dev_ctx, CX_AGC_SYNC_TIP1, (0x1C0 << 17) | 0xF);
+    cx_write(dev_ctx, CX_AGC_SYNC_TIP2, (0x20 << 17) | (1 << 7) | 0x3F);
+    cx_write(dev_ctx, CX_AGC_SYNC_TIP3, (0x1E48 << 16) | (0xE0 << 8) | 0x40);
+    cx_write(dev_ctx, CX_AGC_GAIN_ADJ1, (0xE0 << 17) | (0xE << 9) | 0x7);
+    cx_write(dev_ctx, CX_AGC_GAIN_ADJ2, (0x20 << 17) | (2 << 7) | 0xF);
+    cx_write(dev_ctx, CX_AGC_GAIN_ADJ3, (0x28 << 16) | (0x38 << 8) | 0xC0);
+    cx_write(dev_ctx, CX_AGC_GAIN_ADJ4, (1 << 22) | (1 << 21) | (0xA << 16) | (0x2C << 8) | 0x34);
+
+    return status;
+}
+
 BOOLEAN cx_evt_isr(
     _In_ WDFINTERRUPT intr,
     _In_ ULONG msg_id
