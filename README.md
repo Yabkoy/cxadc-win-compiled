@@ -37,7 +37,10 @@ Due to various security features in Windows 10/11, Secure Boot and Signature Enf
 This has only been tested with VS 2022, WSDK/WDK 10.0.26100 and .NET 8.0.  
 
 ## Notes
-It is currently not possible to configure the [clockgen mod](https://github.com/oyvindln/vhs-decode/wiki/Clockgen-Mod) in Windows. You will need to change the defaults and re-build the firmware.  
+There are issues using the [clockgen mod](https://github.com/oyvindln/vhs-decode/wiki/Clockgen-Mod) in Windows. (2024/11/27)  
+- It is currently not possible to configure, you will need to change the defaults and re-build the firmware
+- The audio input device format limited to `3 channel, 24 bit, 48000 Hz`  
+- The 3rd audio channel (HSW) does not work correctly  
 
 ## Disclaimer
 I take absolutely no responsibility for (including but not limited to) any crashes, instability, security vulnerabilities or interactions with anti-virus/anti-cheat software, nor do I guarantee the accuracy of captures.  
