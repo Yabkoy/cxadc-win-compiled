@@ -229,6 +229,8 @@ NTSTATUS cx_init_mmio(
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
+    dev_ctx->mmio_len = desc->u.Memory.Length;
+
     return STATUS_SUCCESS;
 }
 
