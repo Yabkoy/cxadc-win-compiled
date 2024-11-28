@@ -78,6 +78,7 @@ VOID cx_set_center_offset(_Inout_ PDEVICE_CONTEXT dev_ctx);
 #define CX_VID_DMA_CNTRL        0x31C040
 
 #define CX_PLL                  0x310168
+#define CX_PLL_ADJ_CNTRL        0x31016C
 #define CX_SR_CONV              0x310170
 #define CX_VBI_GP_CNT           0x31C02C
 #define CX_AFE_CFG_IO           0x35C04C

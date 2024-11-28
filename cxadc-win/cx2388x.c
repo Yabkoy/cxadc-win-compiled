@@ -90,7 +90,8 @@ NTSTATUS cx_init(
     cx_write(dev_ctx, CX_PLL, 0x11000000);
 
     // set vbi agc
-    cx_write(dev_ctx, CX_ADC_SYNC_SLICER, 0);
+    // set back porch sample delay & sync sample delay to max
+    cx_write(dev_ctx, CX_ADC_SYNC_SLICER, 0xFFFF);
     cx_write(dev_ctx, CX_AGC_BACK_VBI, (0 << 27) | (0 << 26) | (1 << 25) | (0x100 << 16) | (0xFFF << 0));
 
     cx_set_level(dev_ctx);
@@ -102,8 +103,11 @@ NTSTATUS cx_init(
     cx_write(dev_ctx, CX_AGC_GAIN_ADJ1, (0xE0 << 17) | (0xE << 9) | (0 << 7) | (7 << 0));
     cx_write(dev_ctx, CX_AGC_GAIN_ADJ2, (0x20 << 17) | (2 << 7) | 0xF);
 
-    // set gain of agc but nto offset
+    // set gain of agc but not offset
     cx_write(dev_ctx, CX_AGC_GAIN_ADJ3, (0x28 << 16) | (0x28 << 8) | (0x50 << 0));
+
+    // disable PLL adjust (stabilizes output when video is detected by chip)
+    cx_write(dev_ctx, CX_PLL_ADJ_CNTRL, cx_read(dev_ctx, CX_PLL_ADJ_CNTRL) & ~(1 << 25));
 
     // i2c sda/scl set to high and use software control
     cx_write(dev_ctx, CX_I2C, 0x3);
