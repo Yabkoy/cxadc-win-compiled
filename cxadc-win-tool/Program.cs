@@ -8,115 +8,34 @@
 using cxadc_win_tool;
 using System.Buffers.Binary;
 using System.CommandLine;
-using System.Runtime.InteropServices;
 
 const uint READ_SIZE = 2 * 1024 * 1024; // 2MB
 const uint BUFFER_SIZE = 64 * 1024 * 1024; // 64MB
 const uint MAX_CARDS = byte.MaxValue;
 
-static void Exit()
-{
-    if (State.deviceHandle != null)
-    {
-        Ioctl.CloseDevice(State.deviceHandle);
-    }
-}
+Cxadc? cx = null;
 
 Console.CancelKeyPress += (sender, e) =>
 {
-    Exit();
+    cx?.Dispose();
 };
 
-var rootCommand = new RootCommand("cxadc-win-tool");
-
+// commandline handling
+// global args
 var inputDeviceArg = new Argument<string>(name: "device", description: "device path");
-var outputFileArg = new Argument<string>(name: "output", description: "output path");
-var setNameArg = new Argument<string>("name").FromAmong("vmux", "level", "tenbit", "sixdb", "center_offset");
-var setValueArg = new Argument<uint>("value");
 
-var startingLevelOption = new Option<uint>(name: "--level", description: "starting level", getDefaultValue: () => 16);
-var sampleCountOption = new Option<uint>(name: "--samples", getDefaultValue: () => BUFFER_SIZE + READ_SIZE);
-
+// capture command
+var captureOutputArg = new Argument<string>(name: "output", description: "output path (- for STDOUT)");
 var captureCommand = new Command("capture", description: "capture data")
 {
     inputDeviceArg,
-    outputFileArg
+    captureOutputArg
 };
-
-var getCommand = new Command("get", description: "get device options")
-{
-    inputDeviceArg,
-};
-
-var setCommand = new Command("set", description: "set device options")
-{
-    inputDeviceArg,
-    setNameArg,
-    setValueArg
-};
-
-var levelAdjCommand = new Command("leveladj", "automatic level adjustment")
-{
-    inputDeviceArg,
-    startingLevelOption,
-    sampleCountOption
-};
-
-var scanCommand = new Command("scan", "list devices");
-
-rootCommand.AddCommand(captureCommand);
-rootCommand.AddCommand(getCommand);
-rootCommand.AddCommand(setCommand);
-rootCommand.AddCommand(levelAdjCommand);
-rootCommand.AddCommand(scanCommand);
-
-setCommand.SetHandler((device, name, value) =>
-{
-    try
-    {
-        State.deviceHandle = Ioctl.OpenDevice(device);
-        uint code = 0;
-
-        switch (name)
-        {
-            case "vmux":
-                code = Ioctl.CX_IOCTL_SET_VMUX;
-                break;
-
-            case "level":
-                code = Ioctl.CX_IOCTL_SET_LEVEL;
-                break;
-
-            case "tenbit":
-                code = Ioctl.CX_IOCTL_SET_TENBIT;
-                break;
-
-            case "sixdb":
-                code = Ioctl.CX_IOCTL_SET_SIXDB;
-                break;
-
-            case "center_offset":
-                code = Ioctl.CX_IOCTL_SET_CENTER_OFFSET;
-                break;
-        }
-
-        if (code != 0)
-        {
-            Ioctl.DeviceSet(State.deviceHandle, code, value);
-        }
-    }
-    finally
-    {
-        Exit();
-    }
-}, inputDeviceArg, setNameArg, setValueArg);
 
 captureCommand.SetHandler((device, output) =>
 {
-    try
+    using (cx = new Cxadc(device))
     {
-        State.deviceHandle = Ioctl.OpenDevice(device);
-
         using var stream = output == "-" ? Console.OpenStandardOutput() : File.Open(output, FileMode.Create);
         using var writer = new BinaryWriter(stream);
 
@@ -125,46 +44,88 @@ captureCommand.SetHandler((device, output) =>
             var buffer = new byte[READ_SIZE];
             var bufSpan = new Span<byte>(buffer);
 
-            if (Ioctl.ReadDevice(State.deviceHandle, bufSpan) is var bytesRead)
+            if (cx.Read(bufSpan) is var bytesRead)
             {
                 writer.Write(buffer, 0, bytesRead);
             }
         }
     }
-    finally
-    {
-        Exit();
-    }
-}, inputDeviceArg, outputFileArg);
+}, inputDeviceArg, captureOutputArg);
+
+
+// get command
+var getCommand = new Command("get", description: "get device options")
+{
+    inputDeviceArg,
+};
 
 getCommand.SetHandler((device) =>
 {
-    try
-    {
-        State.deviceHandle = Ioctl.OpenDevice(device);
-
-        Console.WriteLine("{0,-15} {1,-8}", "device", device);
-        Console.WriteLine("{0,-15} {1,-8}", "vmux", Ioctl.DeviceQuery(State.deviceHandle, Ioctl.CX_IOCTL_GET_VMUX));
-        Console.WriteLine("{0,-15} {1,-8}", "level", Ioctl.DeviceQuery(State.deviceHandle, Ioctl.CX_IOCTL_GET_LEVEL));
-        Console.WriteLine("{0,-15} {1,-8}", "tenbit", Ioctl.DeviceQuery(State.deviceHandle, Ioctl.CX_IOCTL_GET_TENBIT));
-        Console.WriteLine("{0,-15} {1,-8}", "sixdb", Ioctl.DeviceQuery(State.deviceHandle, Ioctl.CX_IOCTL_GET_SIXDB));
-        Console.WriteLine("{0,-15} {1,-8}", "center_offset", Ioctl.DeviceQuery(State.deviceHandle, Ioctl.CX_IOCTL_GET_CENTER_OFFSET));
-
-    }
-    finally
-    {
-        Exit();
-    }
+    PrintCxConfig(device);
 }, inputDeviceArg);
+
+// set command
+var setNameArg = new Argument<string>("name").FromAmong("vmux", "level", "tenbit", "sixdb", "center_offset");
+var setValueArg = new Argument<uint>("value");
+var setCommand = new Command("set", description: "set device options")
+{
+    inputDeviceArg,
+    setNameArg,
+    setValueArg
+};
+
+setCommand.SetHandler((device, name, value) =>
+{
+    using var cx = new Cxadc(device);
+    uint code = 0;
+
+    switch (name)
+    {
+        case "vmux":
+            code = Cxadc.CX_IOCTL_SET_VMUX;
+            break;
+
+        case "level":
+            code = Cxadc.CX_IOCTL_SET_LEVEL;
+            break;
+
+        case "tenbit":
+            code = Cxadc.CX_IOCTL_SET_TENBIT;
+            break;
+
+        case "sixdb":
+            code = Cxadc.CX_IOCTL_SET_SIXDB;
+            break;
+
+        case "center_offset":
+            code = Cxadc.CX_IOCTL_SET_CENTER_OFFSET;
+            break;
+    }
+
+    if (code != 0)
+    {
+        cx.Set(code, value);
+    }
+
+}, inputDeviceArg, setNameArg, setValueArg);
+
+
+// leveladj command
+var levelAdjStartingLevelOption = new Option<uint>(name: "--level", description: "starting level", getDefaultValue: () => 16);
+var levelAdjSampelCountOption = new Option<uint>(name: "--samples", getDefaultValue: () => BUFFER_SIZE + READ_SIZE);
+var levelAdjCommand = new Command("leveladj", "automatic level adjustment")
+{
+    inputDeviceArg,
+    levelAdjStartingLevelOption,
+    levelAdjSampelCountOption
+};
 
 levelAdjCommand.SetHandler((device, startingLevel, sampleCount) =>
 {
-    try
+    using (cx = new Cxadc(device))
     {
         // based on code from cxadc-linux3 leveladj.c
-
-        State.deviceHandle = Ioctl.OpenDevice(device);
-        var tenbit = Convert.ToBoolean(Ioctl.DeviceQuery(State.deviceHandle, Ioctl.CX_IOCTL_GET_TENBIT));
+        var tenbit = Convert.ToBoolean(cx.Get(Cxadc.CX_IOCTL_GET_TENBIT));
         uint running = 1;
         var overLimit = 20;
 
@@ -184,10 +145,10 @@ levelAdjCommand.SetHandler((device, startingLevel, sampleCount) =>
             var high = 0;
 
             Console.WriteLine($"Testing level {level}");
-            Ioctl.DeviceSet(State.deviceHandle, Ioctl.CX_IOCTL_SET_LEVEL, level);
-            Ioctl.ReadDevice(State.deviceHandle, buffer);
+            cx.Set(Cxadc.CX_IOCTL_SET_LEVEL, level);
+            cx.Read(buffer);
 
-            for (var i = 0; i < sampleCount / inc && over < overLimit; i+= inc)
+            for (var i = 0; i < sampleCount / inc && over < overLimit; i += inc)
             {
                 var value = tenbit ? BinaryPrimitives.ReadUInt16LittleEndian(buffer[i..]) : buffer[i];
 
@@ -241,49 +202,77 @@ levelAdjCommand.SetHandler((device, startingLevel, sampleCount) =>
 
         Console.WriteLine($"Stopped on level {level}");
     }
-    finally
-    {
-        Exit();
-    }
-}, inputDeviceArg, startingLevelOption, sampleCountOption);
+}, inputDeviceArg, levelAdjStartingLevelOption, levelAdjSampelCountOption);
+
+// scan command
+var scanCommand = new Command("scan", "list devices");
 
 scanCommand.SetHandler(() =>
 {
-    var validPaths = new List<string>();
+    foreach (var device in GetDevices())
+    {
+        Console.WriteLine(device);
+    }
+});
+
+// status command
+var statusCommand = new Command("status", "show all device config");
+
+statusCommand.SetHandler(() =>
+{
+    foreach (var device in GetDevices())
+    {
+        PrintCxConfig(device);
+        Console.WriteLine();
+    }
+});
+
+// root
+var rootCommand = new RootCommand("cxadc-win-tool - https://github.com/JuniorIsAJitterbug/cxadc-win")
+{
+    statusCommand,
+    scanCommand,
+    captureCommand,
+    getCommand,
+    setCommand,
+    levelAdjCommand
+};
+
+List<string> GetDevices()
+{
+    var devices = new List<string>();
 
     for (var i = 0; i < MAX_CARDS; i++)
     {
         var path = $"\\\\.\\cxadc{i}";
-        SafeHandle? handle = null;
 
         try
         {
-            handle = Ioctl.OpenDevice(path);
-            validPaths.Add(path);
+            using (cx = new Cxadc(path))
+            {
+                devices.Add(path);
+            }
         }
         catch
         {
             // assume not a valid path or some other error
         }
-        finally
-        {
-            if (handle != null)
-            {
-                Ioctl.CloseDevice(handle);
-            }
-        }
     }
 
+    return devices;
+}
 
-    foreach (var path in validPaths)
+void PrintCxConfig(string device)
+{
+    using (cx = new Cxadc(device))
     {
-        Console.WriteLine(path);
+        Console.WriteLine("{0,-15} {1,-8}", "device", device);
+        Console.WriteLine("{0,-15} {1,-8}", "vmux", cx.Get(Cxadc.CX_IOCTL_GET_VMUX));
+        Console.WriteLine("{0,-15} {1,-8}", "level", cx.Get(Cxadc.CX_IOCTL_GET_LEVEL));
+        Console.WriteLine("{0,-15} {1,-8}", "tenbit", cx.Get(Cxadc.CX_IOCTL_GET_TENBIT));
+        Console.WriteLine("{0,-15} {1,-8}", "sixdb", cx.Get(Cxadc.CX_IOCTL_GET_SIXDB));
+        Console.WriteLine("{0,-15} {1,-8}", "center_offset", cx.Get(Cxadc.CX_IOCTL_GET_CENTER_OFFSET));
     }
-});
+}
 
 await rootCommand.InvokeAsync(args);
-
-struct State
-{
-    public static SafeHandle? deviceHandle;
-}
