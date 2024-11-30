@@ -14,10 +14,12 @@ const uint BUFFER_SIZE = 64 * 1024 * 1024; // 64MB
 const uint MAX_CARDS = byte.MaxValue;
 
 Cxadc? cx = null;
+Clockgen? clockgen = null;
 
 Console.CancelKeyPress += (sender, e) =>
 {
     cx?.Dispose();
+    clockgen?.Dispose();
 };
 
 // commandline handling
@@ -204,6 +206,46 @@ levelAdjCommand.SetHandler((device, startingLevel, sampleCount) =>
     }
 }, inputDeviceArg, levelAdjStartingLevelOption, levelAdjSampelCountOption);
 
+// clockgen command
+var clockIndexArg = new Argument<uint>("clock").FromAmong("0", "1");
+var clockValueArg = new Argument<uint>(
+    "value",
+    description: "1 = 20.00 MHz, 2 = 28.636 MHz, 3 = 40.00 MHz, 4 = 50.000 MHz"
+    ).FromAmong("1", "2", "3", "4");
+
+var clockgenGetCommand = new Command("get", "get frequency")
+{
+    clockIndexArg
+};
+
+clockgenGetCommand.SetHandler((idx) =>
+{
+    using (clockgen = new Clockgen())
+    {
+        Console.WriteLine($"{clockgen.GetClock(idx):0.000}");
+    }
+}, clockIndexArg);
+
+var clockgenSetCommand = new Command("set", "set frequency")
+{
+    clockIndexArg,
+    clockValueArg
+};
+
+clockgenSetCommand.SetHandler((idx, valueIdx) =>
+{
+    using (clockgen = new Clockgen())
+    {
+        clockgen.SetClock(idx, (byte)valueIdx);
+    }
+}, clockIndexArg, clockValueArg);
+
+var clockgenCommand = new Command("clockgen", "configure clockgen")
+{
+    clockgenGetCommand,
+    clockgenSetCommand
+};
+
 // scan command
 var scanCommand = new Command("scan", "list devices");
 
@@ -225,6 +267,21 @@ statusCommand.SetHandler(() =>
         PrintCxConfig(device);
         Console.WriteLine();
     }
+
+    // attempt clockgen
+    try
+    {
+        for (uint i = 0; i < 2; i++)
+        {
+            using (clockgen = new Clockgen())
+            {
+                Console.WriteLine("{0,-15} {1,-8}", $"clock {i}", $"{clockgen.GetClock(i):0.000}");
+            }
+        }
+    }
+    catch
+    {
+    }
 });
 
 // root
@@ -235,6 +292,7 @@ var rootCommand = new RootCommand("cxadc-win-tool - https://github.com/JuniorIsA
     captureCommand,
     getCommand,
     setCommand,
+    clockgenCommand,
     levelAdjCommand
 };
 
