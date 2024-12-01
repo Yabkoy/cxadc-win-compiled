@@ -21,12 +21,14 @@ Parameter       | Range | Default
 `sixdb`         | `0-1`  | `0`
 `center_offset` | `0-63` | `0`
 
-### Configure clockgen
+### Configure clockgen (Optional)
 > [!IMPORTANT]  
 > [Additional steps](#clockgen-optional) are required to configure clockgen  
 
-`cxadc-win-tool clockgen get <clock>`  
-`cxadc-win-tool clockgen set <clock> <value>`  
+`cxadc-win-tool clockgen audio get`  
+`cxadc-win-tool clockgen audio set <rate>`  
+`cxadc-win-tool clockgen cx get <clock>`  
+`cxadc-win-tool clockgen cx set <clock> <value>`  
 
 Value | Frequency (MHz)
 ------|----------------
@@ -44,17 +46,17 @@ Value | Frequency (MHz)
 
 ### Example
 ```
-cxadc-win-tool set \\.\cxadc0 vmux 1   # set cx card 0 vmux to 1 (bnc?)
-cxadc-win-tool set \\.\cxadc1 vmux 1   # set cx card 1 vmux to 1 (bnc?)
-cxadc-win-tool set \\.\cxadc0 level 0  # set cx card 0 level to 0 (amp?)
-cxadc-win-tool set \\.\cxadc1 level 0  # set cx card 1 level to 0 (amp?)
-cxadc-win-tool clockgen set 0 3        # set clock 0 to 40 MHz
-cxadc-win-tool clockgen set 1 3        # set clock 1 to 40 MHz
-cxadc-win-tool status                  # show all device config
-```
+cxadc-win-tool set \\.\cxadc0 vmux 1     # set cx card 0 vmux to 1 (bnc?)
+cxadc-win-tool set \\.\cxadc1 vmux 1     # set cx card 1 vmux to 1 (bnc?)
+cxadc-win-tool set \\.\cxadc0 level 0    # set cx card 0 level to 0 (amp?)
+cxadc-win-tool set \\.\cxadc1 level 0    # set cx card 1 level to 0 (amp?)
 
-## Limitations
-Due to various security features in Windows 10/11, Secure Boot and Signature Enforcement must be disabled. I recommend re-enabling when not capturing.  
+cxadc-win-tool clockgen cx set 0 3       # set clock 0 to 40 MHz
+cxadc-win-tool clockgen cx set 1 3       # set clock 1 to 40 MHz
+cxadc-win-tool clockgen audio set 48000  # set audio sample rate to 48000 (recommended)
+
+cxadc-win-tool status                    # show all device config
+```
 
 ## Download
 Builds are currently only available via [actions](https://github.com/JuniorIsAJitterbug/cxadc-win/actions). You must be logged in to download artifacts.  
@@ -72,17 +74,26 @@ Builds are currently only available via [actions](https://github.com/JuniorIsAJi
 6. Click **Install this driver software anyway** when prompted
 
 ### Clockgen (Optional)
+> [!NOTE]  
+> This has only been tested with the [original](https://gitlab.com/wolfre/cxadc-clock-generator-audio-adc) clockgen, compatibility with [cxadc-clockgen-mod](https://github.com/namazso/cxadc-clockgen-mod) is not guaranteed (24/12/01)  
+
 The [clockgen mod](https://github.com/oyvindln/vhs-decode/wiki/Clockgen-Mod) is configurable via `cxadc-win-tool`.  
 1. Download the latest [libusb-win32](https://github.com/mcuee/libusb-win32) drivers  
 2. Copy `bin\amd64\libusb0.dll` to `C:\Windows\System32`  
 3. Copy `bin\amd64\libusb0.sys` to `C:\Windows\System32\drivers`  
 4. Run `install-filter-win.exe` as Administrator, select **Install a device filter**  
-5. Select `vid:1209 pid:0001 rev:0000 | USB Composite Device`, click **Install**	
-
-*The 3rd audio channel does not work correctly on Windows. (24/11/30)*  
+5. Select `vid:1209 pid:0001 rev:0000 | USB Composite Device`, click **Install**	 
 
 ## Building
 This has only been tested with VS 2022, WSDK/WDK 10.0.26100 and .NET 8.0.  
+
+## Limitations
+Due to various security features in Windows 10/11, Secure Boot and Signature Enforcement must be disabled. I recommend re-enabling when not capturing.  
+
+## Known issues
+#### Clockgen
+- Windows reports incorrect audio sample rate, set to 48000 to avoid issues (24/12/01)
+- The 3rd audio channel (HSW) does not work correctly (24/11/30) 
 
 ## Disclaimer
 I take absolutely no responsibility for (including but not limited to) any crashes, instability, security vulnerabilities or interactions with anti-virus/anti-cheat software, nor do I guarantee the accuracy of captures.  

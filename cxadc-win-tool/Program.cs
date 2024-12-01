@@ -207,43 +207,80 @@ levelAdjCommand.SetHandler((device, startingLevel, sampleCount) =>
 }, inputDeviceArg, levelAdjStartingLevelOption, levelAdjSampelCountOption);
 
 // clockgen command
-var clockIndexArg = new Argument<uint>("clock").FromAmong("0", "1");
-var clockValueArg = new Argument<uint>(
+var clockgenCxClockIndexArg = new Argument<uint>("clock").FromAmong("0", "1");
+var clockgenCxClockValueArg = new Argument<uint>(
     "value",
     description: "1 = 20.00 MHz, 2 = 28.636 MHz, 3 = 40.00 MHz, 4 = 50.000 MHz"
     ).FromAmong("1", "2", "3", "4");
 
-var clockgenGetCommand = new Command("get", "get frequency")
+var clockgenCxGetCommand = new Command("get", "get frequency")
 {
-    clockIndexArg
+    clockgenCxClockIndexArg
 };
 
-clockgenGetCommand.SetHandler((idx) =>
+clockgenCxGetCommand.SetHandler((idx) =>
 {
     using (clockgen = new Clockgen())
     {
         Console.WriteLine($"{clockgen.GetClock(idx):0.000}");
     }
-}, clockIndexArg);
+}, clockgenCxClockIndexArg);
 
-var clockgenSetCommand = new Command("set", "set frequency")
+var clockgenCxSetCommand = new Command("set", "set frequency")
 {
-    clockIndexArg,
-    clockValueArg
+    clockgenCxClockIndexArg,
+    clockgenCxClockValueArg
 };
 
-clockgenSetCommand.SetHandler((idx, valueIdx) =>
+clockgenCxSetCommand.SetHandler((idx, valueIdx) =>
 {
     using (clockgen = new Clockgen())
     {
         clockgen.SetClock(idx, (byte)valueIdx);
     }
-}, clockIndexArg, clockValueArg);
+}, clockgenCxClockIndexArg, clockgenCxClockValueArg);
+
+var clockgenCxCommand = new Command("cx", "configure cx rates")
+{
+    clockgenCxGetCommand,
+    clockgenCxSetCommand
+};
+
+var clockgenAudioRateArg = new Argument<int>("set").FromAmong("46875", "48000");
+
+var clockgenAudioRateSetCommand = new Command("set")
+{
+    clockgenAudioRateArg
+};
+
+clockgenAudioRateSetCommand.SetHandler((rate) =>
+{
+    using (clockgen = new Clockgen())
+    {
+        clockgen.SetAudioRate(rate);
+    }
+}, clockgenAudioRateArg);
+
+var clockgenAudioRateGetCommand = new Command("get");
+
+clockgenAudioRateGetCommand.SetHandler(() =>
+{
+    using (clockgen = new Clockgen())
+    {
+        Console.WriteLine(clockgen.GetAudioRate());
+    }
+});
+
+var clockgenAudioCommand = new Command("audio", "configure audio rate")
+{
+    clockgenAudioRateSetCommand,
+    clockgenAudioRateGetCommand
+};
 
 var clockgenCommand = new Command("clockgen", "configure clockgen")
 {
-    clockgenGetCommand,
-    clockgenSetCommand
+    clockgenCxCommand,
+    clockgenAudioCommand
 };
 
 // scan command
@@ -271,9 +308,11 @@ statusCommand.SetHandler(() =>
     // attempt clockgen
     try
     {
-        for (uint i = 0; i < 2; i++)
+        using (clockgen = new Clockgen())
         {
-            using (clockgen = new Clockgen())
+            Console.WriteLine("{0,-15} {1,-8}", "audio", clockgen.GetAudioRate());
+
+            for (uint i = 0; i < 2; i++)            
             {
                 Console.WriteLine("{0,-15} {1,-8}", $"clock {i}", $"{clockgen.GetClock(i):0.000}");
             }

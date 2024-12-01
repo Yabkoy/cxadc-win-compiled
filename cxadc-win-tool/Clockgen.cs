@@ -7,6 +7,7 @@
 
 using LibUsbDotNet;
 using LibUsbDotNet.Main;
+using System.Buffers.Binary;
 
 namespace cxadc_win_tool;
 
@@ -28,6 +29,51 @@ public class Clockgen : IDisposable
         {
             throw new Exception($"Device {VendorId:X4}:{ProductId:X4} not found, is libusb_win32 filter driver installed?");
         }
+    }
+
+    public int GetAudioRate()
+    {
+        var cmd = new UsbSetupPacket
+        {
+            RequestType = 0xA1,
+            Request = 0x01,
+            Value = 0x0100,
+            Index = 0x0500,
+            Length = 0x0004
+        };
+
+        var buf = new byte[4];
+        var ret = this._device!.ControlTransfer(ref cmd, buf, buf.Length, out var len);
+
+        if (!ret || len == 0)
+        {
+            throw new Exception($"Error reading sample rate {UsbDevice.LastErrorNumber} / {UsbDevice.LastErrorString}");
+        }
+
+        return BinaryPrimitives.ReadInt32LittleEndian(buf);
+    }
+
+    public int SetAudioRate(int rate)
+    {
+        var cmd = new UsbSetupPacket
+        {
+            RequestType = 0x21,
+            Request = 0x01,
+            Value = 0x0100,
+            Index = 0x0500,
+            Length = 0x0004
+        };
+
+        var buf = new byte[4];
+        BinaryPrimitives.WriteInt32LittleEndian(buf, rate);
+        var ret = this._device!.ControlTransfer(ref cmd, buf, buf.Length, out var len);
+
+        if (!ret || len == 0)
+        {
+            throw new Exception($"Error setting sample rate {UsbDevice.LastErrorNumber} / {UsbDevice.LastErrorString}");
+        }
+
+        return BinaryPrimitives.ReadInt32LittleEndian(buf);
     }
 
     public double GetClock(uint clockIdx)
