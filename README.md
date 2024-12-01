@@ -5,15 +5,16 @@
 This was made for use with the [decode](https://github.com/oyvindln/vhs-decode) projects, see [here](https://github.com/oyvindln/vhs-decode/wiki/CX-Cards) for more information on these cards.  
 
 ## Usage
-### Configure device
+![example capture](assets/example_usage_241201.png)  
+
+### Configure
 `cxadc-win-tool scan`  
-`cxadc-win-tool get \\.\cxadc0`  
-`cxadc-win-tool set \\.\cxadc0 vmux 1`  
-`cxadc-win-tool set \\.\cxadc1 level 20`  
+`cxadc-win-tool get <device>`  
+`cxadc-win-tool set <device> <parameter> <value>`  
 
 See [cxadc-linux3](https://github.com/happycube/cxadc-linux3) for parameter descriptions.  
 Parameter       | Range | Default 
-----------------|-------|--------
+----------------|--------|--------
 `vmux`          | `0-2`  | `2`
 `level`         | `0-31` | `16`
 `tenbit`        | `0-1`  | `0`
@@ -34,15 +35,29 @@ Value | Frequency (MHz)
 `3`   | `40`
 `4`   | `50`
 
-### Capture data to a file or pipe to `STDOUT` for compression
+### Capture
 > [!TIP]  
 > Use Command Prompt instead of PowerShell if piping to `STDOUT`  
 
 `cxadc-win-tool capture \\.\cxadc0 test.u8`  
 `cxadc-win-tool capture \\.\cxadc1 - | flac -0 --blocksize=65535 --lax --sample-rate=28636 --channels=1 --bps=8 --sign=unsigned --endian=little -f - -o test.flac`  
 
+### Example
+```
+cxadc-win-tool set \\.\cxadc0 vmux 1   # set cx card 0 vmux to 1 (bnc?)
+cxadc-win-tool set \\.\cxadc1 vmux 1   # set cx card 1 vmux to 1 (bnc?)
+cxadc-win-tool set \\.\cxadc0 level 0  # set cx card 0 level to 0 (amp?)
+cxadc-win-tool set \\.\cxadc1 level 0  # set cx card 1 level to 0 (amp?)
+cxadc-win-tool clockgen set 0 3        # set clock 0 to 40 MHz
+cxadc-win-tool clockgen set 1 3        # set clock 1 to 40 MHz
+cxadc-win-tool status                  # show all device config
+```
+
 ## Limitations
-Due to various security features in Windows 10/11, Secure Boot and Signature Enforcement must be disabled. I recommend re-enabling when not capturing.
+Due to various security features in Windows 10/11, Secure Boot and Signature Enforcement must be disabled. I recommend re-enabling when not capturing.  
+
+## Download
+Builds are currently only available via [actions](https://github.com/JuniorIsAJitterbug/cxadc-win/actions). You must be logged in to download artifacts.  
 
 ## Pre-installation  
 1. Disable Secure Boot in your BIOS  
@@ -62,7 +77,7 @@ The [clockgen mod](https://github.com/oyvindln/vhs-decode/wiki/Clockgen-Mod) is 
 2. Copy `bin\amd64\libusb0.dll` to `C:\Windows\System32`  
 3. Copy `bin\amd64\libusb0.sys` to `C:\Windows\System32\drivers`  
 4. Run `install-filter-win.exe` as Administrator, select **Install a device filter**  
-5. Select `vid:1209 pid:0001 rev:0000 | USB Composite Device`, click **Install**  
+5. Select `vid:1209 pid:0001 rev:0000 | USB Composite Device`, click **Install**	
 
 *The 3rd audio channel does not work correctly on Windows. (24/11/30)*  
 
