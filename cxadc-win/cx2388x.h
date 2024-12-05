@@ -69,8 +69,8 @@ VOID cx_set_center_offset(_Inout_ PDEVICE_CONTEXT dev_ctx);
 #define CX_AGC_GAIN_ADJ3        0x31021c
 #define CX_AGC_GAIN_ADJ4        0x310220
 
-#define CX_OUTPUT_FORMAT        0x301064
 #define CX_INPUT_FORMAT         0x310104
+#define CX_OUTPUT_FORMAT        0x310164
 #define CX_CONT_BRIGHT_CNTRL    0x310110
 #define CX_CAPTURE_CNTRL        0x310180
 #define CX_COLOR_CNTRL          0x310184
