@@ -629,3 +629,29 @@ VOID cx_set_center_offset(
             .low_stip_th = 0x1E48
         }.dword);
 }
+
+BOOLEAN cx_get_ouflow_state(
+    _Inout_ PDEVICE_CONTEXT dev_ctx
+)
+{
+    CX_VIDEO_DEVICE_STATUS status =
+    {
+        .dword = cx_read(dev_ctx, CX_VIDEO_DEVICE_STATUS_ADDR)
+    };
+
+    return status.lof ? TRUE : FALSE;
+}
+
+VOID cx_reset_ouflow_state(
+    _Inout_ PDEVICE_CONTEXT dev_ctx
+)
+{
+    CX_VIDEO_DEVICE_STATUS status =
+    {
+        .dword = cx_read(dev_ctx, CX_VIDEO_DEVICE_STATUS_ADDR)
+    };
+
+    status.lof = 0;
+
+    cx_write(dev_ctx, CX_VIDEO_DEVICE_STATUS_ADDR, status.dword);
+}

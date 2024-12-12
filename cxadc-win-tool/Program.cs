@@ -97,6 +97,31 @@ setCommand.SetHandler((device, name, value) =>
 }, inputDeviceArg, setNameArg, setValueArg);
 
 
+// reset command
+var resetNameArg = new Argument<string>("name").FromAmong("ouflow_count");
+var resetCommand = new Command("reset", description: "reset device state")
+{
+    inputDeviceArg,
+    resetNameArg
+};
+
+resetCommand.SetHandler((device, name) =>
+{
+    using var cx = new Cxadc(device);
+    uint code = name switch
+    {
+        "ouflow_count" => Cxadc.CX_IOCTL_RESET_OUFLOW_COUNT,
+        _ => 0
+    };
+
+    if (code != 0)
+    {
+        cx.Set(code, 0);
+    }
+
+}, inputDeviceArg, resetNameArg);
+
+
 // leveladj command
 var levelAdjStartingLevelOption = new Option<uint>(name: "--level", description: "starting level", getDefaultValue: () => 16);
 var levelAdjSampelCountOption = new Option<uint>(name: "--samples", getDefaultValue: () => BUFFER_SIZE + READ_SIZE);
@@ -324,6 +349,7 @@ var rootCommand = new RootCommand("cxadc-win-tool - https://github.com/JuniorIsA
     captureCommand,
     getCommand,
     setCommand,
+    resetCommand,
     clockgenCommand,
     levelAdjCommand
 };
@@ -362,6 +388,7 @@ void PrintCxConfig(string device)
         Console.WriteLine("{0,-15} {1,-8}", "tenbit", cx.Get(Cxadc.CX_IOCTL_GET_TENBIT));
         Console.WriteLine("{0,-15} {1,-8}", "sixdb", cx.Get(Cxadc.CX_IOCTL_GET_SIXDB));
         Console.WriteLine("{0,-15} {1,-8}", "center_offset", cx.Get(Cxadc.CX_IOCTL_GET_CENTER_OFFSET));
+        Console.WriteLine("{0,-15} {1,-8}", "ouflow_count", cx.Get(Cxadc.CX_IOCTL_GET_OUFLOW_COUNT));
     }
 }
 

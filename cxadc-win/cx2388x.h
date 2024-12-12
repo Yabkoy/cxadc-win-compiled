@@ -38,6 +38,9 @@ VOID cx_set_level(_Inout_ PDEVICE_CONTEXT dev_ctx);
 VOID cx_set_tenbit(_Inout_ PDEVICE_CONTEXT dev_ctx);
 VOID cx_set_center_offset(_Inout_ PDEVICE_CONTEXT dev_ctx);
 
+BOOLEAN cx_get_ouflow_state(_Inout_ PDEVICE_CONTEXT dev_ctx);
+VOID cx_reset_ouflow_state(_Inout_ PDEVICE_CONTEXT dev_ctx);
+
 #define CX_IRQ_PERIOD_IN_PAGES                  (0x200000 >> PAGE_SHIFT)
 
 #define CX_MEM_SRAM_BASE                        0x180000
@@ -54,6 +57,7 @@ VOID cx_set_center_offset(_Inout_ PDEVICE_CONTEXT dev_ctx);
 #define CX_DMAC_DMA_PTR2_ADDR                   0x3000CC
 #define CX_DMAC_DMA_CNT1_ADDR                   0x30010C
 #define CX_DMAC_DMA_CNT2_ADDR                   0x30014C
+#define CX_VIDEO_DEVICE_STATUS_ADDR             0x310100
 #define CX_VIDEO_INPUT_FORMAT_ADDR              0x310104
 #define CX_VIDEO_CONTRAST_BRIGHTNESS_ADDR       0x310110
 #define CX_VIDEO_OUTPUT_CONTROL_ADDR            0x310164
@@ -189,6 +193,26 @@ typedef union
 } CX_DMAC_DMA_CNT2;
 
 // video
+typedef union
+{
+    struct
+    {
+        ULONG cof                   : 1;
+        ULONG lof                   : 1;
+        ULONG pll                   : 1;
+        ULONG numl                  : 1;
+        ULONG field                 : 1;
+        ULONG hlock                 : 1;
+        ULONG vpres                 : 1;
+        ULONG nsplay                : 1;
+        ULONG                       : 8;
+        ULONG shcerr                : 15;
+        ULONG                       : 1;
+    };
+
+    ULONG dword;
+} CX_VIDEO_DEVICE_STATUS, *PCX_VIDEO_DEVICE_STATUS;
+
 typedef union
 {
     struct

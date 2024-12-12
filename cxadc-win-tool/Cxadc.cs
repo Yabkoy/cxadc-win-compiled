@@ -14,11 +14,13 @@ namespace cxadc_win_tool;
 
 public class Cxadc : IDisposable
 {
+    public const uint CX_IOCTL_GET_OUFLOW_COUNT = 0x810;
     public const uint CX_IOCTL_GET_VMUX = 0x821;
     public const uint CX_IOCTL_GET_LEVEL = 0x822;
     public const uint CX_IOCTL_GET_TENBIT = 0x823;
     public const uint CX_IOCTL_GET_SIXDB = 0x824;
     public const uint CX_IOCTL_GET_CENTER_OFFSET = 0x825;
+    public const uint CX_IOCTL_RESET_OUFLOW_COUNT = 0x910;
     public const uint CX_IOCTL_SET_VMUX = 0x921;
     public const uint CX_IOCTL_SET_LEVEL = 0x922;
     public const uint CX_IOCTL_SET_TENBIT = 0x923;

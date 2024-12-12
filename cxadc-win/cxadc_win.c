@@ -349,6 +349,7 @@ NTSTATUS cx_init_device_ctx(
     WdfDeviceSetAlignmentRequirement(dev_ctx->dev, FILE_LONG_ALIGNMENT);
 
     dev_ctx->dev_idx = dev_count++;
+    dev_ctx->state.ouflow_count = 0;
 
     // create symlink
     DECLARE_UNICODE_STRING_SIZE(symlink_path, sizeof(SYMLINK_PATH) + 3);

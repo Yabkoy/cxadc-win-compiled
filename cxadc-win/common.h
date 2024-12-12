@@ -52,6 +52,7 @@ typedef struct _DEVICE_STATE
 
     LONG64 read_offset;
     LONG64 last_read_offset;
+    ULONG ouflow_count;
 
     WDFTIMER read_timer;
     BOOLEAN is_capturing;

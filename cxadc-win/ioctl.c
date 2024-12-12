@@ -30,6 +30,19 @@ VOID cx_evt_io_ctrl(
 
     switch (ctrl_code)
     {
+    case CX_IOCTL_GET_OUFLOW_COUNT:
+        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (over/underflow count) failed with status %!STATUS!", status);
+            break;
+        }
+
+        *out_buf = dev_ctx->state.ouflow_count;
+        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        break;
+
     case CX_IOCTL_GET_VMUX:
         status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
 
@@ -93,6 +106,11 @@ VOID cx_evt_io_ctrl(
 
         *out_buf = dev_ctx->attrs.center_offset;
         WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        break;
+
+    case CX_IOCTL_RESET_OUFLOW_COUNT:
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "resetting over/underflow count (current: %d)", dev_ctx->state.ouflow_count);
+        dev_ctx->state.ouflow_count = 0;
         break;
 
     case CX_IOCTL_SET_VMUX:
@@ -276,6 +294,13 @@ VOID cx_evt_io_read(
             offset += len;
 
             page_no = cx_get_page_no(dev_ctx->state.initial_page, offset);
+        }
+
+        // check over/underflow, increment count if set
+        if (cx_get_ouflow_state(dev_ctx))
+        {
+            dev_ctx->state.ouflow_count += 1;
+            cx_reset_ouflow_state(dev_ctx);
         }
 
         if (count)
