@@ -5,6 +5,7 @@
  * Copyright (C) 2024 Jitterbug
  */
 
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Storage.FileSystem;
@@ -44,10 +45,11 @@ public class Cxadc : IDisposable
             null);
 
         var err = Marshal.GetLastWin32Error();
+        var errStr = new Win32Exception(err).Message;
 
         if (err != 0)
         {
-            throw new Exception($"Unable to open {devicePath} err {err}");
+            throw new Exception($"Unable to open {devicePath}: {errStr}");
         }
     }
 
@@ -64,10 +66,11 @@ public class Cxadc : IDisposable
         if (!ret)
         {
             var err = Marshal.GetLastWin32Error();
+            var errStr = new Win32Exception(err).Message;
 
             if (err != 0)
             {
-                throw new Exception($"read failed with err {err}");
+                throw new Exception($"Read failed: {errStr}");
             }
         }
 
@@ -95,10 +98,11 @@ public class Cxadc : IDisposable
                 null);
 
             var err = Marshal.GetLastWin32Error();
+            var errStr = new Win32Exception(err).Message;
 
             if (err != 0)
             {
-                throw new Exception($"get failed with err {err}");
+                throw new Exception($"Get failed: {errStr}");
             }
 
             ret = *(uint*)buffer;
@@ -128,10 +132,11 @@ public class Cxadc : IDisposable
                 null);
 
             var err = Marshal.GetLastWin32Error();
+            var errStr = new Win32Exception(err).Message;
 
             if (err != 0)
             {
-                throw new Exception($"set failed with err {err}");
+                throw new Exception($"Set failed: {errStr}");
             }
 
             ret = *(uint*)buffer;
