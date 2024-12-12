@@ -92,7 +92,6 @@ NTSTATUS cx_evt_device_add(
     WdfDeviceInitSetPnpPowerEventCallbacks(dev_init, &pnp_callbacks);
 
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&dev_attrs, DEVICE_CONTEXT);
-    dev_attrs.SynchronizationScope = WdfSynchronizationScopeDevice;
     dev_attrs.EvtCleanupCallback = cx_evt_device_cleanup;
 
     status = WdfDeviceCreate(&dev_init, &dev_attrs, &dev);
@@ -253,9 +252,11 @@ NTSTATUS cx_init_interrupt(
         desc->u.Interrupt.Level,
         desc->u.Interrupt.Vector);
 
-    WDF_INTERRUPT_CONFIG_INIT(&intr_cfg, cx_evt_isr, NULL);
+    WDF_INTERRUPT_CONFIG_INIT(&intr_cfg, cx_evt_isr, cx_evt_dpc);
     intr_cfg.InterruptTranslated = desc;
     intr_cfg.InterruptRaw = desc_raw;
+    intr_cfg.EvtInterruptEnable = cx_evt_intr_enable;
+    intr_cfg.EvtInterruptDisable = cx_evt_intr_disable;
     status = WdfInterruptCreate(dev_ctx->dev, &intr_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->intr);
 
     if (!NT_SUCCESS(status))
@@ -299,7 +300,6 @@ NTSTATUS cx_evt_device_d0_entry(
 
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
 
-    cx_disable(dev_ctx);
     cx_init(dev_ctx);
 
     return status;
@@ -315,6 +315,7 @@ NTSTATUS cx_evt_device_d0_exit(
     PAGED_CODE();
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
 
+    // should already be stopped
     cx_stop_capture(dev_ctx);
     cx_disable(dev_ctx);
 
@@ -348,7 +349,6 @@ NTSTATUS cx_init_device_ctx(
     WdfDeviceSetAlignmentRequirement(dev_ctx->dev, FILE_LONG_ALIGNMENT);
 
     dev_ctx->dev_idx = dev_count++;
-    dev_ctx->is_reading = FALSE;
 
     // create symlink
     DECLARE_UNICODE_STRING_SIZE(symlink_path, sizeof(SYMLINK_PATH) + 3);
@@ -387,8 +387,11 @@ NTSTATUS cx_init_device_ctx(
     // init attrs
     cx_init_attrs(dev_ctx);
 
+    // init state
+    cx_init_state(dev_ctx);
+
     // init interrupt event
-    KeInitializeEvent(&dev_ctx->isr_event, SynchronizationEvent, FALSE);
+    KeInitializeEvent(&dev_ctx->isr_event, NotificationEvent, FALSE);
 
     // init periodic timeout timer
     status = cx_init_timers(dev_ctx);
@@ -475,21 +478,18 @@ NTSTATUS cx_init_queue(
 
     WDF_IO_QUEUE_CONFIG queue_cfg;
 
+    // control queue
     WDF_IO_QUEUE_CONFIG_INIT(&queue_cfg, WdfIoQueueDispatchSequential);
-
-    // set ioctl handlers
     queue_cfg.EvtIoDeviceControl = cx_evt_io_ctrl;
-    queue_cfg.EvtIoRead = cx_evt_io_read;
-
-    status = WdfIoQueueCreate(dev_ctx->dev, &queue_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->queue);
+    status = WdfIoQueueCreate(dev_ctx->dev, &queue_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->control_queue);
 
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfIoQueueCreate failed with status %!STATUS!", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfIoQueueCreate (control) failed with status %!STATUS!", status);
         return status;
     }
 
-    status = WdfDeviceConfigureRequestDispatching(dev_ctx->dev, dev_ctx->queue, WdfRequestTypeDeviceControl);
+    status = WdfDeviceConfigureRequestDispatching(dev_ctx->dev, dev_ctx->control_queue, WdfRequestTypeDeviceControl);
 
     if (!NT_SUCCESS(status))
     {
@@ -498,7 +498,18 @@ NTSTATUS cx_init_queue(
         return status;
     }
 
-    status = WdfDeviceConfigureRequestDispatching(dev_ctx->dev, dev_ctx->queue, WdfRequestTypeRead);
+    // read queue
+    WDF_IO_QUEUE_CONFIG_INIT(&queue_cfg, WdfIoQueueDispatchSequential);
+    queue_cfg.EvtIoRead = cx_evt_io_read;
+    status = WdfIoQueueCreate(dev_ctx->dev, &queue_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->read_queue);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfIoQueueCreate (read) failed with status %!STATUS!", status);
+        return status;
+    }
+
+    status = WdfDeviceConfigureRequestDispatching(dev_ctx->dev, dev_ctx->read_queue, WdfRequestTypeRead);
 
     if (!NT_SUCCESS(status))
     {
@@ -508,6 +519,28 @@ NTSTATUS cx_init_queue(
     }
 
     return status;
+}
+
+_inline
+VOID cx_init_attrs(
+    _Inout_ PDEVICE_CONTEXT dev_ctx
+)
+{
+    dev_ctx->attrs = (DEVICE_ATTRS) {
+        .vmux = CX_IOCTL_VMUX_DEFAULT,
+        .level = CX_IOCTL_LEVEL_DEFAULT,
+        .tenbit = CX_IOCTL_TENBIT_DEFAULT,
+        .sixdb = CX_IOCTL_SIXDB_DEFAULT,
+        .center_offset = CX_IOCTL_CENTER_OFFSET_DEFAULT
+    };
+}
+
+_inline
+VOID cx_init_state(
+    _Inout_ PDEVICE_CONTEXT dev_ctx
+)
+{
+    dev_ctx->state = (DEVICE_STATE) { 0 };
 }
 
 NTSTATUS cx_init_timers(
@@ -524,7 +557,7 @@ NTSTATUS cx_init_timers(
     WDF_OBJECT_ATTRIBUTES_INIT(&attrs);
     attrs.ParentObject = dev_ctx->dev;
 
-    status = WdfTimerCreate(&cfg, &attrs, &dev_ctx->read_timer);
+    status = WdfTimerCreate(&cfg, &attrs, &dev_ctx->state.read_timer);
 
     if (!NT_SUCCESS(status))
     {
@@ -535,7 +568,7 @@ NTSTATUS cx_init_timers(
 
     // we do not use events for opening/closing the device
     // check every N seconds if there has been a new read
-    WdfTimerStart(dev_ctx->read_timer, WDF_REL_TIMEOUT_IN_MS(READ_TIMEOUT));
+    WdfTimerStart(dev_ctx->state.read_timer, WDF_REL_TIMEOUT_IN_MS(READ_TIMEOUT));
 
     return status;
 }
@@ -546,34 +579,17 @@ VOID cx_evt_timer_callback(
 {
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfTimerGetParentObject(timer));
 
-    if (dev_ctx->is_reading)
+    if (dev_ctx->state.is_capturing)
     {
-        if (dev_ctx->read_offset == dev_ctx->read_last_offset)
+        if (dev_ctx->state.read_offset == dev_ctx->state.last_read_offset)
         {
-            // timer has not been updated since last callback
-            TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "stopping capture");
-
-            dev_ctx->is_reading = FALSE;
+            // offset has not been updated since last callback
             cx_stop_capture(dev_ctx);
             return;
         }
 
-        dev_ctx->read_last_offset = dev_ctx->read_offset;
+        dev_ctx->state.last_read_offset = dev_ctx->state.read_offset;
     }
-}
-
-_inline
-VOID cx_init_attrs(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
-)
-{
-    dev_ctx->attrs = (DEVICE_ATTRS) {
-        .vmux = CX_IOCTL_VMUX_DEFAULT,
-        .level = CX_IOCTL_LEVEL_DEFAULT,
-        .tenbit = CX_IOCTL_TENBIT_DEFAULT,
-        .sixdb = CX_IOCTL_SIXDB_DEFAULT,
-        .center_offset = CX_IOCTL_CENTER_OFFSET_DEFAULT
-    };
 }
 
 NTSTATUS cx_check_dev_info(

@@ -36,13 +36,13 @@ NTSTATUS cx_init_interrupt(
     _In_ PCM_PARTIAL_RESOURCE_DESCRIPTOR desc_raw
 );
 
-BOOLEAN cx_evt_isr(_In_ WDFINTERRUPT intr, _In_ ULONG);
 NTSTATUS cx_create_device(_Inout_ PWDFDEVICE_INIT);
 NTSTATUS cx_init_device_ctx(_Inout_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_dma(_In_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_queue(_In_ PDEVICE_CONTEXT dev_ctx);
+VOID cx_init_attrs(_Inout_ PDEVICE_CONTEXT dev_ctx);
+VOID cx_init_state(_Inout_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_timers(_In_ PDEVICE_CONTEXT dev_ctx);
 VOID cx_evt_timer_callback(_In_ WDFTIMER timer);
-VOID cx_init_attrs(_Inout_ PDEVICE_CONTEXT dev_ctx);
 
 NTSTATUS cx_check_dev_info(_In_ PDEVICE_CONTEXT dev_ctx);

@@ -45,6 +45,18 @@ typedef struct _DEVICE_ATTRS
     LONG center_offset;
 } DEVICE_ATTRS, *PDEVICE_ATTRS;
 
+typedef struct _DEVICE_STATE
+{
+    LONG last_gp_cnt;
+    LONG initial_page;
+
+    LONG64 read_offset;
+    LONG64 last_read_offset;
+
+    WDFTIMER read_timer;
+    BOOLEAN is_capturing;
+} DEVICE_STATE, *PDEVICE_STATE;
+
 typedef struct _DEVICE_CONTEXT
 {
     WDFDEVICE dev;
@@ -52,17 +64,12 @@ typedef struct _DEVICE_CONTEXT
     UNICODE_STRING symlink_path;
 
     WDFINTERRUPT intr;
-    WDFQUEUE queue;
+    WDFQUEUE control_queue;
+    WDFQUEUE read_queue;
     KEVENT isr_event;
 
-    ULONG gp_cnt;
-    ULONG initial_page;
-    size_t read_offset;
-    size_t read_last_offset;
-    WDFTIMER read_timer;
-    BOOLEAN is_reading;
-
     DEVICE_ATTRS attrs;
+    DEVICE_STATE state;
 
     WDFDMAENABLER dma_enabler;
 

@@ -91,26 +91,11 @@ NTSTATUS cx_init(
             .color_odd = 0xE,
         }.dword);
 
-    cx_set_tenbit(dev_ctx);
-
     // power down audio and chroma DAC+ADC
     cx_write(dev_ctx, CX_MISC_AFECFG_ADDR,
         (CX_MISC_AFECFG) {
             .bg_pwrdn = 1,
             .dac_pwrdn = 1
-        }.dword);
-
-    // run risc
-    cx_write(dev_ctx, CX_DMAC_DEVICE_CONTROL_2_ADDR,
-        (CX_DMAC_DEVICE_CONTROL_2) {
-            .run_risc = 1
-        }.dword);
-
-    // enable fifo and risc
-    cx_write(dev_ctx, CX_VIDEO_IPB_DMA_CONTROL_ADDR,
-        (CX_VIDEO_IPB_DMA_CONTROL) {
-            .vbi_fifo_en = 1,
-            .vbi_risc_en = 1
         }.dword);
 
     // set SRC to 8xfsc
@@ -143,8 +128,6 @@ NTSTATUS cx_init(
             .clamp_vbi_en = 0
         }.dword);
 
-    cx_set_level(dev_ctx);
-
     cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_TIP_ADJUST_1_ADDR,
         (CX_VIDEO_AGC_SYNC_TIP_ADJUST_1) {
             .trk_sat_val = 0x0F,
@@ -157,15 +140,12 @@ NTSTATUS cx_init(
             .acq_mode_thr = 0x20
         }.dword);
 
-    cx_set_center_offset(dev_ctx);
-
     cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_1_ADDR,
         (CX_VIDEO_AGC_GAIN_ADJUST_1) {
             .trk_agc_sat_val = 7,
             .trk_agc_core_th_val = 0xE,
             .trk_agc_mode_th = 0xE0
         }.dword);
-
 
     cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_2_ADDR,
         (CX_VIDEO_AGC_GAIN_ADJUST_2) {
@@ -198,14 +178,10 @@ NTSTATUS cx_init(
             .scl = 1
         }.dword);
 
-    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR,
-        (CX_DMAC_VIDEO_INTERRUPT) {
-            .vbi_riscl1 = 1,
-            .vbi_riscl2 = 1,
-            .vbif_of = 1,
-            .vbi_sync = 1,
-            .opc_err = 1
-        }.dword);
+    cx_set_vmux(dev_ctx);
+    cx_set_tenbit(dev_ctx);
+    cx_set_level(dev_ctx);
+    cx_set_center_offset(dev_ctx);
 
     return status;
 }
@@ -359,9 +335,6 @@ NTSTATUS cx_disable(
 
     // setting all bits to 0/1 so just write entire dword
 
-    // turn off pci interrupt
-    cx_write(dev_ctx, CX_MISC_PCI_INTERRUPT_MASK_ADDR, 0);
-
     // turn off interrupt
     cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR, 0);
     cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, 0xFFFFFFFF);
@@ -456,10 +429,10 @@ BOOLEAN cx_evt_isr(
     _In_ ULONG msg_id
 )
 {
-    UNREFERENCED_PARAMETER(intr);
     UNREFERENCED_PARAMETER(msg_id);
 
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfInterruptGetDevice(intr));
+    BOOLEAN is_recognized = FALSE;
 
     CX_DMAC_VIDEO_INTERRUPT mstat =
     {
@@ -468,46 +441,139 @@ BOOLEAN cx_evt_isr(
 
     if (!mstat.vbi_riscl1 && mstat.dword)
     {
+        // unexpected interrupts?
         TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "intr stat 0x%0X masked 0x%0X",
             cx_read(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR),
             mstat.dword);
     }
 
-    if (!mstat.dword) {
-        return FALSE;
-    }
-
     if (mstat.vbi_riscl1)
     {
-        // comment from the Linux driver
-        // NB: CX_VBI_GP_CNT is not guaranteed to be in-sync with resident pages.
-        // i.e. we can get gp_cnt == 1 but the first page may not yet have been transferred
-        // to main memory. on the other hand, if an interrupt has occurred, we are guaranteed to have the page
-        // in main memory. so we only retrieve CX_VBI_GP_CNT after an interrupt has occurred and then round
-        // it down to the last page that we know should have triggered an interrupt.
-        ULONG gp_cnt = cx_read(dev_ctx, CX_VIDEO_VBI_GP_COUNTER_ADDR);
-        gp_cnt &= ~(CX_IRQ_PERIOD_IN_PAGES - 1);
-        dev_ctx->gp_cnt = gp_cnt;
-        KeSetEvent(&dev_ctx->isr_event, IO_NO_INCREMENT, FALSE);
+        is_recognized = TRUE;
     }
 
+    // clear interrupts
     cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, mstat.dword);
 
-    return TRUE;
+    if (is_recognized)
+    {
+        WdfInterruptQueueDpcForIsr(intr);
+    }
+
+    return is_recognized;
+}
+
+VOID cx_evt_dpc(
+    _In_ WDFINTERRUPT intr,
+    _In_ WDFOBJECT dev
+)
+{
+    UNREFERENCED_PARAMETER(dev);
+
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfInterruptGetDevice(intr));
+
+    // comment from the Linux driver
+    // NB: CX_VBI_GP_CNT is not guaranteed to be in-sync with resident pages.
+    // i.e. we can get gp_cnt == 1 but the first page may not yet have been transferred
+    // to main memory. on the other hand, if an interrupt has occurred, we are guaranteed to have the page
+    // in main memory. so we only retrieve CX_VBI_GP_CNT after an interrupt has occurred and then round
+    // it down to the last page that we know should have triggered an interrupt.
+    InterlockedExchange(&dev_ctx->state.last_gp_cnt,
+        cx_read(dev_ctx, CX_VIDEO_VBI_GP_COUNTER_ADDR) & ~(CX_IRQ_PERIOD_IN_PAGES - 1));
+
+    KeSetEvent(&dev_ctx->isr_event, IO_NO_INCREMENT, FALSE);
+}
+
+NTSTATUS cx_evt_intr_enable(
+    _In_ WDFINTERRUPT intr,
+    _In_ WDFDEVICE    dev
+)
+{
+    UNREFERENCED_PARAMETER(dev);
+
+    NTSTATUS status = STATUS_SUCCESS;
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfInterruptGetDevice(intr));
+
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "enabling interrupts");
+
+    cx_write(dev_ctx, CX_MISC_PCI_INTERRUPT_MASK_ADDR,
+        (CX_MISC_PCI_INTERRUPT_MASK) {
+            .vid_int = 1
+        }.dword);
+
+    return status;
+}
+
+NTSTATUS cx_evt_intr_disable(
+    _In_ WDFINTERRUPT intr,
+    _In_ WDFDEVICE    dev
+)
+{
+    UNREFERENCED_PARAMETER(dev);
+
+    NTSTATUS status = STATUS_SUCCESS;
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfInterruptGetDevice(intr));
+
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "disabling interrupts");
+    cx_write(dev_ctx, CX_MISC_PCI_INTERRUPT_MASK_ADDR, 0);
+
+    return status;
 }
 
 VOID cx_start_capture(
     _Inout_ PDEVICE_CONTEXT dev_ctx
 )
 {
-    cx_write(dev_ctx, CX_MISC_PCI_INTERRUPT_MASK_ADDR, 1);
+    if (dev_ctx->state.is_capturing)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "already capturing");
+        return;
+    }
+
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "starting capture");
+
+    // enable fifo and risc
+    cx_write(dev_ctx, CX_DMAC_DEVICE_CONTROL_2_ADDR,
+        (CX_DMAC_DEVICE_CONTROL_2) {
+            .run_risc = 1
+        }.dword);
+
+    cx_write(dev_ctx, CX_VIDEO_IPB_DMA_CONTROL_ADDR,
+        (CX_VIDEO_IPB_DMA_CONTROL) {
+            .vbi_fifo_en = 1,
+            .vbi_risc_en = 1
+        }.dword);
+
+    // turn on interrupt
+    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR,
+        (CX_DMAC_VIDEO_INTERRUPT) {
+            .vbi_riscl1 = 1,
+            .vbi_riscl2 = 1,
+            .vbif_of = 1,
+            .vbi_sync = 1,
+            .opc_err = 1
+        }.dword);
+
+    InterlockedExchange((PLONG)&dev_ctx->state.is_capturing, TRUE);
 }
 
 VOID cx_stop_capture(
     _Inout_ PDEVICE_CONTEXT dev_ctx
 )
 {
-    cx_write(dev_ctx, CX_MISC_PCI_INTERRUPT_MASK_ADDR, 0);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "stopping capture");
+
+    InterlockedExchange((PLONG)&dev_ctx->state.is_capturing, FALSE);
+
+    // turn off interrupt
+    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR, 0);
+    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, 0xFFFFFFFF);
+
+    // disable fifo and risc
+    cx_write(dev_ctx, CX_VIDEO_IPB_DMA_CONTROL_ADDR, 0);
+
+    // disable risc
+    cx_write(dev_ctx, CX_DMAC_DEVICE_CONTROL_2_ADDR, 0);
 }
 
 VOID cx_set_vmux(

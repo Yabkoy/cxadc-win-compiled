@@ -26,6 +26,11 @@ NTSTATUS cx_init_cdt(_Inout_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_risc(_Inout_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_cmds(_Inout_ PDEVICE_CONTEXT dev_ctx);
 
+EVT_WDF_INTERRUPT_ISR cx_evt_isr;
+EVT_WDF_INTERRUPT_DPC cx_evt_dpc;
+EVT_WDF_INTERRUPT_ENABLE cx_evt_intr_enable;
+EVT_WDF_INTERRUPT_DISABLE cx_evt_intr_disable;
+
 VOID cx_start_capture(_Inout_ PDEVICE_CONTEXT dev_ctx);
 VOID cx_stop_capture(_Inout_ PDEVICE_CONTEXT dev_ctx);
 VOID cx_set_vmux(_Inout_ PDEVICE_CONTEXT dev_ctx);
@@ -86,6 +91,36 @@ typedef union
 
     ULONG dword;
 } CX_DMAC_DEVICE_CONTROL_2;
+
+typedef union
+{
+    struct
+    {
+        ULONG vid_int               : 1;
+        ULONG aud_int               : 1;
+        ULONG ts_int                : 1;
+        ULONG vip_int               : 1;
+        ULONG hst_int               : 1;
+        ULONG                       : 2;
+        ULONG tm1_int               : 1;
+        ULONG src_dma_int           : 1;
+        ULONG dst_dma_int           : 1;
+        ULONG risc_rd_berr_int      : 1;
+        ULONG risc_wr_berr_int      : 1;
+        ULONG brdg_berr_int         : 1;
+        ULONG src_dma_berr_int      : 1;
+        ULONG dst_dma_berr_int      : 1;
+        ULONG ipb_dma_berr_int      : 1;
+        ULONG i2c_int               : 1;
+        ULONG i2c_rack              : 1;
+        ULONG ir_smp_int            : 1;
+        ULONG gpio_int0             : 1;
+        ULONG gpio_int1             : 1;
+        ULONG                       : 11;
+    };
+
+    ULONG dword;
+} CX_MISC_PCI_INTERRUPT_MASK, *PCX_MISC_PCI_INTERRUPT_MASK;
 
 typedef union
 {
