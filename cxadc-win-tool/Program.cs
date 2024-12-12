@@ -79,30 +79,15 @@ var setCommand = new Command("set", description: "set device options")
 setCommand.SetHandler((device, name, value) =>
 {
     using var cx = new Cxadc(device);
-    uint code = 0;
-
-    switch (name)
+    uint code = name switch
     {
-        case "vmux":
-            code = Cxadc.CX_IOCTL_SET_VMUX;
-            break;
-
-        case "level":
-            code = Cxadc.CX_IOCTL_SET_LEVEL;
-            break;
-
-        case "tenbit":
-            code = Cxadc.CX_IOCTL_SET_TENBIT;
-            break;
-
-        case "sixdb":
-            code = Cxadc.CX_IOCTL_SET_SIXDB;
-            break;
-
-        case "center_offset":
-            code = Cxadc.CX_IOCTL_SET_CENTER_OFFSET;
-            break;
-    }
+        "vmux" => Cxadc.CX_IOCTL_SET_VMUX,
+        "level" => Cxadc.CX_IOCTL_SET_LEVEL,
+        "tenbit" => Cxadc.CX_IOCTL_SET_TENBIT,
+        "sixdb" => Cxadc.CX_IOCTL_SET_SIXDB,
+        "center_offset" => Cxadc.CX_IOCTL_SET_CENTER_OFFSET,
+        _ => 0
+    };
 
     if (code != 0)
     {

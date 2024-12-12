@@ -13,16 +13,16 @@ namespace cxadc_win_tool;
 
 public class Cxadc : IDisposable
 {
-    public const uint CX_IOCTL_SET_VMUX = 0x901;
-    public const uint CX_IOCTL_GET_VMUX = 0x961;
-    public const uint CX_IOCTL_SET_LEVEL = 0x902;
-    public const uint CX_IOCTL_GET_LEVEL = 0x962;
-    public const uint CX_IOCTL_SET_TENBIT = 0x903;
-    public const uint CX_IOCTL_GET_TENBIT = 0x963;
-    public const uint CX_IOCTL_SET_SIXDB = 0x904;
-    public const uint CX_IOCTL_GET_SIXDB = 0x964;
-    public const uint CX_IOCTL_SET_CENTER_OFFSET = 0x905;
-    public const uint CX_IOCTL_GET_CENTER_OFFSET = 0x965;
+    public const uint CX_IOCTL_GET_VMUX = 0x821;
+    public const uint CX_IOCTL_GET_LEVEL = 0x822;
+    public const uint CX_IOCTL_GET_TENBIT = 0x823;
+    public const uint CX_IOCTL_GET_SIXDB = 0x824;
+    public const uint CX_IOCTL_GET_CENTER_OFFSET = 0x825;
+    public const uint CX_IOCTL_SET_VMUX = 0x921;
+    public const uint CX_IOCTL_SET_LEVEL = 0x922;
+    public const uint CX_IOCTL_SET_TENBIT = 0x923;
+    public const uint CX_IOCTL_SET_SIXDB = 0x924;
+    public const uint CX_IOCTL_SET_CENTER_OFFSET = 0x925;
 
     const uint FILE_DEVICE_UNKNOWN = 0x00000022;
     const uint METHOD_BUFFERED = 0;

@@ -27,6 +27,14 @@
 #pragma alloc_text (PAGE, cx_evt_device_release_hardware)
 #pragma alloc_text (PAGE, cx_evt_device_d0_entry)
 #pragma alloc_text (PAGE, cx_evt_device_d0_exit)
+
+#pragma alloc_text (PAGE, cx_init_mmio)
+#pragma alloc_text (PAGE, cx_init_interrupt)
+#pragma alloc_text (PAGE, cx_init_device_ctx)
+#pragma alloc_text (PAGE, cx_init_dma)
+#pragma alloc_text (PAGE, cx_init_queue)
+#pragma alloc_text (PAGE, cx_init_timers)
+#pragma alloc_text (PAGE, cx_check_dev_info)
 #endif
 
 UCHAR dev_count = 0;
@@ -69,7 +77,6 @@ NTSTATUS cx_evt_device_add(
     WDF_PNPPOWER_EVENT_CALLBACKS pnp_callbacks;
     WDF_OBJECT_ATTRIBUTES dev_attrs;
     WDFDEVICE dev;
-    PDEVICE_CONTEXT dev_ctx = NULL;
 
     UNREFERENCED_PARAMETER(driver);
     PAGED_CODE();
@@ -96,7 +103,6 @@ NTSTATUS cx_evt_device_add(
         return status;
     }
 
-
     status = WdfDeviceCreateDeviceInterface(dev, (LPGUID)&GUID_DEVINTERFACE_CXADCWIN, NULL);
 
     if (!NT_SUCCESS(status))
@@ -105,7 +111,7 @@ NTSTATUS cx_evt_device_add(
         return status;
     }
 
-    dev_ctx = cx_device_get_ctx(dev);
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
     dev_ctx->dev = dev;
 
     status = cx_check_dev_info(dev_ctx);
@@ -156,10 +162,6 @@ NTSTATUS cx_evt_device_prepare_hardware(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PDEVICE_CONTEXT dev_ctx;
-    PCM_PARTIAL_RESOURCE_DESCRIPTOR desc;
-    ULONG i;
-
     PAGED_CODE();
 
     // ensure we stick to arbitrary device count
@@ -169,11 +171,11 @@ NTSTATUS cx_evt_device_prepare_hardware(
         return STATUS_DEVICE_CONFIGURATION_ERROR;
     }
 
-    dev_ctx = cx_device_get_ctx(dev);
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
     
-    for (i = 0; i < WdfCmResourceListGetCount(res_trans); i++)
+    for (ULONG i = 0; i < WdfCmResourceListGetCount(res_trans); i++)
     {
-        desc = WdfCmResourceListGetDescriptor(res_trans, i);
+        PCM_PARTIAL_RESOURCE_DESCRIPTOR desc = WdfCmResourceListGetDescriptor(res_trans, i);
 
         if (!desc)
         {
@@ -209,6 +211,8 @@ NTSTATUS cx_init_mmio(
     _In_ PCM_PARTIAL_RESOURCE_DESCRIPTOR desc
 )
 {
+    PAGED_CODE();
+
     dev_ctx->mmio = (PULONG)MmMapIoSpaceEx(
         desc->u.Memory.Start,
         desc->u.Memory.Length,
@@ -240,6 +244,8 @@ NTSTATUS cx_init_interrupt(
     _In_ PCM_PARTIAL_RESOURCE_DESCRIPTOR desc_raw
 )
 {
+    PAGED_CODE();
+
     NTSTATUS status;
     WDF_INTERRUPT_CONFIG intr_cfg;
 
@@ -266,12 +272,11 @@ NTSTATUS cx_evt_device_release_hardware(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PDEVICE_CONTEXT dev_ctx;
 
     UNREFERENCED_PARAMETER(res_trans);
     PAGED_CODE();
 
-    dev_ctx = cx_device_get_ctx(dev);
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
 
     if (dev_ctx->mmio)
     {
@@ -288,12 +293,11 @@ NTSTATUS cx_evt_device_d0_entry(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PDEVICE_CONTEXT dev_ctx;
 
     UNREFERENCED_PARAMETER(prev_state);
     PAGED_CODE();
 
-    dev_ctx = cx_device_get_ctx(dev);
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
 
     cx_disable(dev_ctx);
     cx_init(dev_ctx);
@@ -307,10 +311,9 @@ NTSTATUS cx_evt_device_d0_exit(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PDEVICE_CONTEXT dev_ctx;
 
     PAGED_CODE();
-    dev_ctx = cx_device_get_ctx(dev);
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
 
     cx_stop_capture(dev_ctx);
     cx_disable(dev_ctx);
@@ -338,6 +341,8 @@ NTSTATUS cx_init_device_ctx(
 )
 {
     NTSTATUS status;
+
+    PAGED_CODE();
     
     // device is 32-bit aligned
     WdfDeviceSetAlignmentRequirement(dev_ctx->dev, FILE_LONG_ALIGNMENT);
@@ -402,8 +407,9 @@ NTSTATUS cx_init_dma(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    PAGED_CODE();
+
     WDF_DMA_ENABLER_CONFIG dma_cfg;
-    ULONG i;
 
     WDF_DMA_ENABLER_CONFIG_INIT(&dma_cfg, WdfDmaProfilePacket, CX_VBI_BUF_SIZE);
     dma_cfg.WdmDmaVersionOverride = 3;
@@ -437,7 +443,7 @@ NTSTATUS cx_init_dma(
         (ULONG)(WdfCommonBufferGetLength(dev_ctx->dma_risc_instr.buf) / 1024));
 
     // data pages
-    for (i = 0; i < CX_VBI_BUF_COUNT; i++)
+    for (ULONG i = 0; i < CX_VBI_BUF_COUNT; i++)
     {
         DMA_DATA dma_data;
         dma_data.len = PAGE_SIZE;
@@ -465,6 +471,8 @@ NTSTATUS cx_init_queue(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    PAGED_CODE();
+
     WDF_IO_QUEUE_CONFIG queue_cfg;
 
     WDF_IO_QUEUE_CONFIG_INIT(&queue_cfg, WdfIoQueueDispatchSequential);
@@ -507,6 +515,8 @@ NTSTATUS cx_init_timers(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    PAGED_CODE();
+
     WDF_TIMER_CONFIG cfg;
     WDF_OBJECT_ATTRIBUTES attrs;
 
@@ -552,15 +562,18 @@ VOID cx_evt_timer_callback(
     }
 }
 
+_inline
 VOID cx_init_attrs(
-    _In_ PDEVICE_CONTEXT dev_ctx
+    _Inout_ PDEVICE_CONTEXT dev_ctx
 )
 {
-    dev_ctx->attrs.vmux = CX_IOCTL_VMUX_DEFAULT;
-    dev_ctx->attrs.level = CX_IOCTL_LEVEL_DEFAULT;
-    dev_ctx->attrs.tenbit = CX_IOCTL_TENBIT_DEFAULT;
-    dev_ctx->attrs.sixdb = CX_IOCTL_SIXDB_DEFAULT;
-    dev_ctx->attrs.center_offset = CX_IOCTL_CENTER_OFFSET_DEFAULT;
+    dev_ctx->attrs = (DEVICE_ATTRS) {
+        .vmux = CX_IOCTL_VMUX_DEFAULT,
+        .level = CX_IOCTL_LEVEL_DEFAULT,
+        .tenbit = CX_IOCTL_TENBIT_DEFAULT,
+        .sixdb = CX_IOCTL_SIXDB_DEFAULT,
+        .center_offset = CX_IOCTL_CENTER_OFFSET_DEFAULT
+    };
 }
 
 NTSTATUS cx_check_dev_info(
@@ -568,10 +581,9 @@ NTSTATUS cx_check_dev_info(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    PAGED_CODE();
+
     BUS_INTERFACE_STANDARD bus;
-    UCHAR buf[256];
-    PPCI_COMMON_CONFIG pci_config = (PPCI_COMMON_CONFIG)buf;
-    ULONG read = 0;
 
     status = WdfFdoQueryForInterface(
         dev_ctx->dev,
@@ -587,11 +599,13 @@ NTSTATUS cx_check_dev_info(
         return status;
     }
 
+    UCHAR buf[256];
     RtlZeroMemory(buf, sizeof(buf));
-
-    read = bus.GetBusData(bus.Context, PCI_WHICHSPACE_CONFIG, buf, FIELD_OFFSET(PCI_COMMON_CONFIG, VendorID), 256);
+    bus.GetBusData(bus.Context, PCI_WHICHSPACE_CONFIG, buf, FIELD_OFFSET(PCI_COMMON_CONFIG, VendorID), 256);
 
     // ensure device id is correct
+    PPCI_COMMON_CONFIG pci_config = (PPCI_COMMON_CONFIG)buf;
+
     if (pci_config->VendorID != VENDOR_ID || pci_config->DeviceID != DEVICE_ID)
     {
         TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "unknown vendor/device id %04X:%04X",

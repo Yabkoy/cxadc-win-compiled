@@ -30,20 +30,6 @@ VOID cx_evt_io_ctrl(
 
     switch (ctrl_code)
     {
-    case CX_IOCTL_SET_VMUX:
-        status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
-
-        if (!NT_SUCCESS(status))
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveInputBuffer (vmux) failed with status %!STATUS!", status);
-            break;
-        }
-
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting vmux to %d", *in_buf);
-        dev_ctx->attrs.vmux = *in_buf;
-        cx_set_vmux(dev_ctx);
-        break;
-
     case CX_IOCTL_GET_VMUX:
         status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
 
@@ -55,6 +41,79 @@ VOID cx_evt_io_ctrl(
 
         *out_buf = dev_ctx->attrs.vmux;
         WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        break;
+
+    case CX_IOCTL_GET_LEVEL:
+        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (level) failed with status %!STATUS!", status);
+            break;
+        }
+
+        *out_buf = dev_ctx->attrs.level;
+        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        break;
+
+    case CX_IOCTL_GET_TENBIT:
+        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (tenbit) failed with status %!STATUS!", status);
+            break;
+        }
+
+        *out_buf = dev_ctx->attrs.tenbit;
+        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        break;
+
+    case CX_IOCTL_GET_SIXDB:
+        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (sixdb) failed with status %!STATUS!", status);
+            break;
+        }
+
+        *out_buf = dev_ctx->attrs.sixdb;
+        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        break;
+
+    case CX_IOCTL_GET_CENTER_OFFSET:
+        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (center_offset) failed with status %!STATUS!", status);
+            break;
+        }
+
+        *out_buf = dev_ctx->attrs.center_offset;
+        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        break;
+
+    case CX_IOCTL_SET_VMUX:
+        status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveInputBuffer (vmux) failed with status %!STATUS!", status);
+            break;
+        }
+
+        if (*in_buf < CX_IOCTL_VMUX_MIN || *in_buf > CX_IOCTL_VMUX_MAX)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid vmux %d", *in_buf);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting vmux to %d", *in_buf);
+        dev_ctx->attrs.vmux = *in_buf;
+        cx_set_vmux(dev_ctx);
         break;
 
     case CX_IOCTL_SET_LEVEL:
@@ -78,19 +137,6 @@ VOID cx_evt_io_ctrl(
         cx_set_level(dev_ctx);
         break;
 
-    case CX_IOCTL_GET_LEVEL:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (level) failed with status %!STATUS!", status);
-            break;
-        }
-
-        *out_buf = dev_ctx->attrs.level;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
-        break;
-
     case CX_IOCTL_SET_TENBIT:
         status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
 
@@ -110,19 +156,6 @@ VOID cx_evt_io_ctrl(
         TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting tenbit to %d", *in_buf);
         dev_ctx->attrs.tenbit = *in_buf;
         cx_set_tenbit(dev_ctx);
-        break;
-
-    case CX_IOCTL_GET_TENBIT:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (tenbit) failed with status %!STATUS!", status);
-            break;
-        }
-
-        *out_buf = dev_ctx->attrs.tenbit;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
         break;
 
     case CX_IOCTL_SET_SIXDB:
@@ -146,19 +179,6 @@ VOID cx_evt_io_ctrl(
         cx_set_level(dev_ctx);
         break;
 
-    case CX_IOCTL_GET_SIXDB:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (sixdb) failed with status %!STATUS!", status);
-            break;
-        }
-
-        *out_buf = dev_ctx->attrs.sixdb;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
-        break;
-
     case CX_IOCTL_SET_CENTER_OFFSET:
         status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
 
@@ -180,19 +200,6 @@ VOID cx_evt_io_ctrl(
         cx_set_center_offset(dev_ctx);
         break;
 
-    case CX_IOCTL_GET_CENTER_OFFSET:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (center_offset) failed with status %!STATUS!", status);
-            break;
-        }
-
-        *out_buf = dev_ctx->attrs.center_offset;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
-        break;
-
     default:
         status = STATUS_INVALID_DEVICE_REQUEST;
         break;
@@ -208,32 +215,26 @@ VOID cx_evt_io_read(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PDEVICE_CONTEXT dev_ctx;
-    WDFMEMORY mem;
-    size_t count, tgt_off, offset;
-    ULONG page_no;
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfIoQueueGetDevice(queue));
 
-    dev_ctx = cx_device_get_ctx(WdfIoQueueGetDevice(queue));
-
-    if (!dev_ctx->is_reading)
+    if (!dev_ctx->state.is_capturing)
     {
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "starting capture");
-
         KeClearEvent(&dev_ctx->isr_event);
 
         cx_start_capture(dev_ctx);
 
-        status = KeWaitForSingleObject(&dev_ctx->isr_event, Executive, KernelMode, TRUE, NULL);
+        status = KeWaitForSingleObject(&dev_ctx->isr_event, Executive, KernelMode, FALSE, NULL);
 
         if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "KeWaitForSingleObject failed with status %!STATUS!", status);
         }
 
-        dev_ctx->initial_page = dev_ctx->gp_cnt;
-        dev_ctx->read_offset = 0;
+        InterlockedExchange(&dev_ctx->state.initial_page, dev_ctx->state.last_gp_cnt);
+        InterlockedExchange64(&dev_ctx->state.read_offset, 0);
     }
 
+    WDFMEMORY mem;
     status = WdfRequestRetrieveOutputMemory(req, &mem);
 
     if (!NT_SUCCESS(status))
@@ -243,19 +244,17 @@ VOID cx_evt_io_read(
         return;
     }
 
-    count = req_len;
-    offset = dev_ctx->read_offset;
-    page_no = cx_get_page_no(dev_ctx->initial_page, offset);
-    tgt_off = 0;
+    LONG64 count = req_len;
+    LONG64 offset = dev_ctx->state.read_offset;
+    LONG64 tgt_off = 0;
+    LONG page_no = cx_get_page_no(dev_ctx->state.initial_page, offset);
 
-    dev_ctx->is_reading = TRUE;
-
-    while (count)
+    while (count && dev_ctx->state.is_capturing)
     {
-        while (count > 0 && page_no != dev_ctx->gp_cnt)
+        while (count > 0 && page_no != dev_ctx->state.last_gp_cnt)
         {
-            size_t page_off = offset % PAGE_SIZE;
-            size_t len = page_off ? (PAGE_SIZE - page_off) : PAGE_SIZE;
+            LONG64 page_off = offset % PAGE_SIZE;
+            LONG64 len = page_off ? (PAGE_SIZE - page_off) : PAGE_SIZE;
 
             if (len > count) {
                 len = count;
@@ -276,7 +275,7 @@ VOID cx_evt_io_read(
             tgt_off += len;
             offset += len;
 
-            page_no = cx_get_page_no(dev_ctx->initial_page, offset);
+            page_no = cx_get_page_no(dev_ctx->state.initial_page, offset);
         }
 
         if (count)
@@ -285,7 +284,8 @@ VOID cx_evt_io_read(
 
             // gp_cnt == page_no but read buffer is not filled
             // wait for interrupt to trigger and continue
-            status = KeWaitForSingleObject(&dev_ctx->isr_event, Executive, KernelMode, TRUE, NULL);
+            status = KeWaitForSingleObject(&dev_ctx->isr_event, Executive, KernelMode, FALSE, NULL);
+
             if (!NT_SUCCESS(status))
             {
                 TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "KeWaitForSingleObject failed with status %!STATUS!", status);
@@ -297,9 +297,9 @@ VOID cx_evt_io_read(
 
     // our read request does not contain an offset,
     // so we keep track of it for the duration of the capture
-    dev_ctx->read_offset = offset;
+    InterlockedExchange64(&dev_ctx->state.read_offset, offset);
 
-    WdfRequestCompleteWithInformation(req, status, req_len);
+    WdfRequestCompleteWithInformation(req, status, req_len - count);
 }
 
 __inline
