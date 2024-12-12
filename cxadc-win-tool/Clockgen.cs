@@ -78,6 +78,11 @@ public class Clockgen : IDisposable
 
     public double GetClock(uint clockIdx)
     {
+        return GetFreq(GetFreqIdx(clockIdx));
+    }
+
+    public byte GetFreqIdx(uint clockIdx)
+    {
         if (clockIdx > 1)
         {
             throw new Exception($"Invalid clock {clockIdx}");
@@ -100,7 +105,7 @@ public class Clockgen : IDisposable
             throw new Exception($"Error reading clock {UsbDevice.LastErrorNumber} / {UsbDevice.LastErrorString}");
         }
 
-        return GetFreq(buf[0]);
+        return buf[0];
     }
 
     public bool SetClock(uint clockIdx, byte freqIdx)

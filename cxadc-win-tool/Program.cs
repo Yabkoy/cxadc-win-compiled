@@ -221,7 +221,15 @@ clockgenCxSetCommand.SetHandler((idx, valueIdx) =>
 {
     using (clockgen = new Clockgen())
     {
-        clockgen.SetClock(idx, (byte)valueIdx);
+        var currentFreqIdx = clockgen.GetFreqIdx(idx);
+
+        // stepped change of clock to prevent crash
+        while (valueIdx != currentFreqIdx)
+        {
+            currentFreqIdx += (byte)(valueIdx < currentFreqIdx ? -1 : 1);
+            clockgen.SetClock(idx, currentFreqIdx);
+            Thread.Sleep(100);
+        }
     }
 }, clockgenCxClockIndexArg, clockgenCxClockValueArg);
 
