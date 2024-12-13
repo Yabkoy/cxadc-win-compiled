@@ -36,7 +36,9 @@ jobs:
           Copy-Item -Path .\x64\Release\cxadc-win\cxadc-win.cat -Destination .\release\
           Copy-Item -Path .\x64\Release\cxadc-win\cxadc-win.sys -Destination .\release\
           Copy-Item -Path .\x64\Release\cxadc-win\cxadc-win.inf -Destination .\release\
+          Copy-Item -Path .\x64\Release\cxadc-win.pdb -Destination .\release\
           Copy-Item -Path .\cxadc-win-tool\bin\Release\net8.0-windows\win-x64\publish\cxadc-win-tool.exe -Destination .\release\
+          Copy-Item -Path .\cxadc-win-tool\bin\Release\net8.0-windows\win-x64\publish\cxadc-win-tool.pdb -Destination .\release\
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
