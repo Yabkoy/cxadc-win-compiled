@@ -35,6 +35,7 @@
 #pragma alloc_text (PAGE, cx_init_queue)
 #pragma alloc_text (PAGE, cx_init_timers)
 #pragma alloc_text (PAGE, cx_check_dev_info)
+#pragma alloc_text (PAGE, cx_read_device_prop)
 #endif
 
 UCHAR dev_count = 0;
@@ -121,7 +122,24 @@ NTSTATUS cx_evt_device_add(
         return status;
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "add device PDO(0x%p) FDO(0x%p) ctx(0x%p)",
+    status = cx_read_device_prop(dev_ctx, DevicePropertyBusNumber, &dev_ctx->bus_number);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_read_device_prop(DevicePropertyBusNumber) failed with status %!STATUS!", status);
+        return status;
+    }
+    
+    status = cx_read_device_prop(dev_ctx, DevicePropertyAddress, &dev_ctx->dev_addr);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_read_device_prop(DevicePropertyAddress) failed with status %!STATUS!", status);
+        return status;
+    }
+
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "add device %02x:%02d.%01d PDO(0x%p) FDO(0x%p) ctx(0x%p)",
+        dev_ctx->bus_number, (dev_ctx->dev_addr >> 16) & 0x0000FFFF, dev_ctx->dev_addr & 0x0000FFFF,
         WdfDeviceWdmGetPhysicalDevice(dev),
         WdfDeviceWdmGetDeviceObject(dev),
         dev_ctx);
@@ -630,6 +648,35 @@ NTSTATUS cx_check_dev_info(
             pci_config->DeviceID);
 
         return STATUS_UNSUCCESSFUL;
+    }
+
+    return status;
+}
+
+NTSTATUS cx_read_device_prop(
+    _In_ PDEVICE_CONTEXT dev_ctx,
+    _In_ DEVICE_REGISTRY_PROPERTY prop,
+    _Inout_ PULONG value
+)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PAGED_CODE();
+
+    ULONG len;
+
+    status = WdfDeviceQueryProperty(
+        dev_ctx->dev,
+        prop,
+        sizeof(ULONG),
+        value,
+        &len
+    );
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL,
+            "WdfDeviceQueryProperty failed with status %!STATUS!", status);
+        return status;
     }
 
     return status;

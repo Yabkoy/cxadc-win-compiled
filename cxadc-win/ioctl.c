@@ -121,6 +121,32 @@ VOID cx_evt_io_ctrl(
         WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
         break;
 
+    case CX_IOCTL_GET_BUS_NUMBER:
+        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (bus location) failed with status %!STATUS!", status);
+            break;
+        }
+
+        *out_buf = dev_ctx->bus_number;
+        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        break;
+
+    case CX_IOCTL_GET_DEVICE_ADDRESS:
+        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (dev addr) failed with status %!STATUS!", status);
+            break;
+        }
+
+        *out_buf = dev_ctx->dev_addr;
+        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        break;
+
     case CX_IOCTL_RESET_OUFLOW_COUNT:
         TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "resetting over/underflow count (current: %d)", dev_ctx->state.ouflow_count);
         dev_ctx->state.ouflow_count = 0;

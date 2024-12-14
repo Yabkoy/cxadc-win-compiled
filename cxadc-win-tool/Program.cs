@@ -389,8 +389,13 @@ void PrintCxConfig(string device)
     using (cx = new Cxadc(device))
     {
         var capturing = cx.Get(Cxadc.CX_IOCTL_GET_CAPTURE_STATE) == 1 ? true : false;
+        var busNum = cx.Get(Cxadc.CX_IOCTL_GET_BUS_NUMBER);
+        var devAddr = cx.Get(Cxadc.CX_IOCTL_GET_DEVICE_ADDRESS);
+        var devNum = (devAddr >> 16) & 0x0000FFFF;
+        var funcNum = devAddr & 0x0000FFFF;
 
         Console.WriteLine("{0,-15} {1,-8} {2,15}", "device", device, capturing ? "**capturing**" : "");
+        Console.WriteLine("{0,-15} {1,-8}", "location", $"{busNum:00}:{devNum:00}.{funcNum:0}");
         Console.WriteLine("{0,-15} {1,-8}", "vmux", cx.Get(Cxadc.CX_IOCTL_GET_VMUX));
         Console.WriteLine("{0,-15} {1,-8}", "level", cx.Get(Cxadc.CX_IOCTL_GET_LEVEL));
         Console.WriteLine("{0,-15} {1,-8}", "tenbit", cx.Get(Cxadc.CX_IOCTL_GET_TENBIT));

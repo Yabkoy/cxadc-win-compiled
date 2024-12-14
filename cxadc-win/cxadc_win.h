@@ -46,3 +46,8 @@ NTSTATUS cx_init_timers(_In_ PDEVICE_CONTEXT dev_ctx);
 VOID cx_evt_timer_callback(_In_ WDFTIMER timer);
 
 NTSTATUS cx_check_dev_info(_In_ PDEVICE_CONTEXT dev_ctx);
+NTSTATUS cx_read_device_prop(
+    _In_ PDEVICE_CONTEXT dev_ctx,
+    _In_ DEVICE_REGISTRY_PROPERTY prop,
+    _Inout_ PULONG value
+);

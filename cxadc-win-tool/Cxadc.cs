@@ -21,6 +21,8 @@ public class Cxadc : IDisposable
     public const uint CX_IOCTL_GET_TENBIT = 0x823;
     public const uint CX_IOCTL_GET_SIXDB = 0x824;
     public const uint CX_IOCTL_GET_CENTER_OFFSET = 0x825;
+    public const uint CX_IOCTL_GET_BUS_NUMBER = 0x830;
+    public const uint CX_IOCTL_GET_DEVICE_ADDRESS = 0x831;
     public const uint CX_IOCTL_RESET_OUFLOW_COUNT = 0x910;
     public const uint CX_IOCTL_SET_VMUX = 0x921;
     public const uint CX_IOCTL_SET_LEVEL = 0x922;

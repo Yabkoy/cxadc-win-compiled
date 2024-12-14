@@ -63,6 +63,8 @@ typedef struct _DEVICE_CONTEXT
     WDFDEVICE dev;
     ULONG dev_idx;
     UNICODE_STRING symlink_path;
+    ULONG bus_number;
+    ULONG dev_addr;
 
     WDFINTERRUPT intr;
     WDFQUEUE control_queue;
