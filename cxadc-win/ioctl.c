@@ -30,6 +30,19 @@ VOID cx_evt_io_ctrl(
 
     switch (ctrl_code)
     {
+    case CX_IOCTL_GET_CAPTURE_STATE:
+        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (get_capture_state) failed with status %!STATUS!", status);
+            break;
+        }
+
+        *out_buf = (ULONG)dev_ctx->state.is_capturing;
+        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        break;
+
     case CX_IOCTL_GET_OUFLOW_COUNT:
         status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
 

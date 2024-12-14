@@ -14,6 +14,7 @@ namespace cxadc_win_tool;
 
 public class Cxadc : IDisposable
 {
+    public const uint CX_IOCTL_GET_CAPTURE_STATE = 0x800;
     public const uint CX_IOCTL_GET_OUFLOW_COUNT = 0x810;
     public const uint CX_IOCTL_GET_VMUX = 0x821;
     public const uint CX_IOCTL_GET_LEVEL = 0x822;

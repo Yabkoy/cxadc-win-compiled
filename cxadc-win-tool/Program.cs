@@ -38,6 +38,12 @@ captureCommand.SetHandler((device, output) =>
 {
     using (cx = new Cxadc(device))
     {
+        if (cx.Get(Cxadc.CX_IOCTL_GET_CAPTURE_STATE) == 1)
+        {
+            Console.WriteLine($"{device} already capturing");
+            return;
+        }
+
         using var stream = output == "-" ? Console.OpenStandardOutput() : File.Open(output, FileMode.Create);
         using var writer = new BinaryWriter(stream);
 
@@ -382,7 +388,9 @@ void PrintCxConfig(string device)
 {
     using (cx = new Cxadc(device))
     {
-        Console.WriteLine("{0,-15} {1,-8}", "device", device);
+        var capturing = cx.Get(Cxadc.CX_IOCTL_GET_CAPTURE_STATE) == 1 ? true : false;
+
+        Console.WriteLine("{0,-15} {1,-8} {2,15}", "device", device, capturing ? "**capturing**" : "");
         Console.WriteLine("{0,-15} {1,-8}", "vmux", cx.Get(Cxadc.CX_IOCTL_GET_VMUX));
         Console.WriteLine("{0,-15} {1,-8}", "level", cx.Get(Cxadc.CX_IOCTL_GET_LEVEL));
         Console.WriteLine("{0,-15} {1,-8}", "tenbit", cx.Get(Cxadc.CX_IOCTL_GET_TENBIT));
