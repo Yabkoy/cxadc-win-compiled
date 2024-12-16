@@ -34,6 +34,8 @@ var captureCommand = new Command("capture", description: "capture data")
     captureOutputArg
 };
 
+captureCommand.AddAlias("cap");
+
 captureCommand.SetHandler((device, output) =>
 {
     using (cx = new Cxadc(device))
