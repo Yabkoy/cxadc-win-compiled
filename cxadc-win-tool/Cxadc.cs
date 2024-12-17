@@ -5,6 +5,8 @@
  * Copyright (C) 2024 Jitterbug
  */
 
+using System;
+using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Windows.Win32;
@@ -84,21 +86,32 @@ public class Cxadc : IDisposable
 
     public uint Get(uint code)
     {
-        nint buffer = nint.Zero;
+        return BinaryPrimitives.ReadUInt32LittleEndian(Get(code, sizeof(uint), []));
+    }
+
+    public uint Get(uint code, byte[] data)
+    {
+        return BinaryPrimitives.ReadUInt32LittleEndian(Get(code, sizeof(uint), data));
+    }
+
+    public byte[] Get(uint code, uint len, byte[] data)
+    {
         uint bytesRead = 0;
-        uint ret = 0;
+        byte[] ret;
 
         unsafe
         {
-            buffer = Marshal.AllocHGlobal(sizeof(uint));
+            var outBuffer = Marshal.AllocHGlobal((int)len);
+            var inBuffer = Marshal.AllocHGlobal(data.Length);
+            Marshal.Copy(data, 0, inBuffer, data.Length);
 
             PInvoke.DeviceIoControl(
                 this._handle,
                 GetCtlCode(code, FILE_READ_DATA),
-                null,
-                0,
-                buffer.ToPointer(),
-                sizeof(uint),
+                inBuffer.ToPointer(),
+                (uint)data.Length,
+                outBuffer.ToPointer(),
+                len,
                 &bytesRead,
                 null);
 
@@ -110,29 +123,37 @@ public class Cxadc : IDisposable
                 throw new Exception($"Get failed: {errStr}");
             }
 
-            ret = *(uint*)buffer;
+            ret = new byte[bytesRead];
+            Marshal.Copy(outBuffer, ret, 0, (int)bytesRead);
         }
 
         return ret;
     }
 
-    public uint Set(uint code, uint data)
+    public void Set(uint code, uint value)
     {
-        nint buffer = nint.Zero;
+        var data = new byte[4];
+        BinaryPrimitives.WriteUInt32LittleEndian(data, value);
+
+        Set(code, data);
+    }
+
+    public void Set(uint code, byte[] data)
+    {
         uint bytesRead = 0;
-        uint ret = 0;
 
         unsafe
         {
-            buffer = Marshal.AllocHGlobal(sizeof(uint));
+            var inBuffer = Marshal.AllocHGlobal(data.Length);
+            Marshal.Copy(data, 0, inBuffer, data.Length);
 
             PInvoke.DeviceIoControl(
                 this._handle,
                 GetCtlCode(code, FILE_WRITE_DATA),
-                &data,
-                sizeof(uint),
-                buffer.ToPointer(),
-                sizeof(uint),
+                inBuffer.ToPointer(),
+                (uint)data.Length,
+                null,
+                0,
                 &bytesRead,
                 null);
 
@@ -143,11 +164,7 @@ public class Cxadc : IDisposable
             {
                 throw new Exception($"Set failed: {errStr}");
             }
-
-            ret = *(uint*)buffer;
         }
-
-        return ret;
     }
 
     ~Cxadc() => Dispose();

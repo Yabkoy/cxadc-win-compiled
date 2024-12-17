@@ -25,243 +25,271 @@ VOID cx_evt_io_ctrl(
     _In_ ULONG ctrl_code)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PLONG out_buf, in_buf;
+    PUCHAR out_buf = NULL, in_buf = NULL;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfIoQueueGetDevice(queue));
+
+    if (out_len)
+    {
+        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
+
+        if (!NT_SUCCESS(status) || out_buf == NULL)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer failed with status %!STATUS!", status);
+            WdfRequestComplete(req, status);
+            return;
+        }
+    }
+
+    if (in_len)
+    {
+        status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
+
+        if (!NT_SUCCESS(status) || in_buf == NULL)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveInputBuffer failed with status %!STATUS!", status);
+            WdfRequestComplete(req, status);
+            return;
+        }
+    }
 
     switch (ctrl_code)
     {
     case CX_IOCTL_GET_CAPTURE_STATE:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (out_buf == NULL || out_len < sizeof(ULONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (get_capture_state) failed with status %!STATUS!", status);
+            status = STATUS_BUFFER_TOO_SMALL;
             break;
         }
 
-        *out_buf = (ULONG)dev_ctx->state.is_capturing;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        *(PULONG)out_buf = dev_ctx->state.is_capturing;
         break;
+    }
 
     case CX_IOCTL_GET_OUFLOW_COUNT:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (out_buf == NULL || out_len < sizeof(ULONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (over/underflow count) failed with status %!STATUS!", status);
+            status = STATUS_BUFFER_TOO_SMALL;
             break;
         }
 
-        *out_buf = dev_ctx->state.ouflow_count;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        *(PULONG)out_buf = dev_ctx->state.ouflow_count;
         break;
+    }
 
     case CX_IOCTL_GET_VMUX:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (out_buf == NULL || out_len < sizeof(ULONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (vmux) failed with status %!STATUS!", status);
+            status = STATUS_BUFFER_TOO_SMALL;
             break;
         }
 
-        *out_buf = dev_ctx->attrs.vmux;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        *(PULONG)out_buf = dev_ctx->attrs.vmux;
         break;
+    }
 
     case CX_IOCTL_GET_LEVEL:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (out_buf == NULL || out_len < sizeof(ULONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (level) failed with status %!STATUS!", status);
+            status = STATUS_BUFFER_TOO_SMALL;
             break;
         }
 
-        *out_buf = dev_ctx->attrs.level;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        *(PULONG)out_buf = dev_ctx->attrs.level;
         break;
+    }
 
     case CX_IOCTL_GET_TENBIT:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (out_buf == NULL || out_len < sizeof(ULONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (tenbit) failed with status %!STATUS!", status);
+            status = STATUS_BUFFER_TOO_SMALL;
             break;
         }
 
-        *out_buf = dev_ctx->attrs.tenbit;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        *(PULONG)out_buf = dev_ctx->attrs.tenbit;
         break;
+    }
 
     case CX_IOCTL_GET_SIXDB:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (out_buf == NULL || out_len < sizeof(ULONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (sixdb) failed with status %!STATUS!", status);
+            status = STATUS_BUFFER_TOO_SMALL;
             break;
         }
 
-        *out_buf = dev_ctx->attrs.sixdb;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        *(PULONG)out_buf = dev_ctx->attrs.sixdb;
         break;
+    }
 
     case CX_IOCTL_GET_CENTER_OFFSET:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (out_buf == NULL || out_len < sizeof(ULONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (center_offset) failed with status %!STATUS!", status);
+            status = STATUS_BUFFER_TOO_SMALL;
             break;
         }
 
-        *out_buf = dev_ctx->attrs.center_offset;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        *(PULONG)out_buf = dev_ctx->attrs.center_offset;
         break;
+    }
 
     case CX_IOCTL_GET_BUS_NUMBER:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (out_buf == NULL || out_len < sizeof(ULONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (bus location) failed with status %!STATUS!", status);
+            status = STATUS_BUFFER_TOO_SMALL;
             break;
         }
 
-        *out_buf = dev_ctx->bus_number;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        *(PULONG)out_buf = dev_ctx->bus_number;
         break;
+    }
 
     case CX_IOCTL_GET_DEVICE_ADDRESS:
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (out_buf == NULL || out_len < sizeof(ULONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer (dev addr) failed with status %!STATUS!", status);
+            status = STATUS_BUFFER_TOO_SMALL;
             break;
         }
 
-        *out_buf = dev_ctx->dev_addr;
-        WdfRequestSetInformation(req, (ULONG_PTR)sizeof(*out_buf));
+        *(PULONG)out_buf = dev_ctx->dev_addr;
         break;
+    }
 
     case CX_IOCTL_RESET_OUFLOW_COUNT:
+    {
         TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "resetting over/underflow count (current: %d)", dev_ctx->state.ouflow_count);
         dev_ctx->state.ouflow_count = 0;
         break;
+    }
 
     case CX_IOCTL_SET_VMUX:
-        status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
-
-        if (!NT_SUCCESS(status))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveInputBuffer (vmux) failed with status %!STATUS!", status);
-            break;
-        }
-
-        if (*in_buf < CX_IOCTL_VMUX_MIN || *in_buf > CX_IOCTL_VMUX_MAX)
+        if (in_buf == NULL || in_len != sizeof(LONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid vmux %d", *in_buf);
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting vmux to %d", *in_buf);
-        dev_ctx->attrs.vmux = *in_buf;
+        LONG value = *(PLONG)in_buf;
+
+        if (value < CX_IOCTL_VMUX_MIN || value > CX_IOCTL_VMUX_MAX)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid vmux %d", value);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting vmux to %d", value);
+        dev_ctx->attrs.vmux = value;
         cx_set_vmux(dev_ctx);
         break;
+    }
 
     case CX_IOCTL_SET_LEVEL:
-        status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
-
-        if (!NT_SUCCESS(status))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveInputBuffer (level) failed with status %!STATUS!", status);
-            break;
-        }
-
-        if (*in_buf < CX_IOCTL_LEVEL_MIN || *in_buf > CX_IOCTL_LEVEL_MAX)
+        if (in_buf == NULL || in_len != sizeof(LONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid level %d", *in_buf);
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting level to %d", *in_buf);
-        dev_ctx->attrs.level = *in_buf;
+        LONG value = *(PLONG)in_buf;
+
+        if (value < CX_IOCTL_LEVEL_MIN || value > CX_IOCTL_LEVEL_MAX)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid level %d", value);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting level to %d", value);
+        dev_ctx->attrs.level = value;
         cx_set_level(dev_ctx);
         break;
+    }
 
     case CX_IOCTL_SET_TENBIT:
-        status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (in_buf == NULL || in_len != sizeof(LONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveInputBuffer (tenbit) failed with status %!STATUS!", status);
-            break;
-        }
-
-        if (*in_buf < CX_IOCTL_TENBIT_MIN || *in_buf > CX_IOCTL_TENBIT_MAX)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid tenbit %d", *in_buf);
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting tenbit to %d", *in_buf);
-        dev_ctx->attrs.tenbit = *in_buf;
+        LONG value = *(PLONG)in_buf;
+
+        if (value < CX_IOCTL_TENBIT_MIN || value > CX_IOCTL_TENBIT_MAX)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid tenbit %d", value);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting tenbit to %d", value);
+        dev_ctx->attrs.tenbit = value;
         cx_set_tenbit(dev_ctx);
         break;
+    }
 
     case CX_IOCTL_SET_SIXDB:
-        status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
-
-        if (!NT_SUCCESS(status))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveInputBuffer (sixdb) failed with status %!STATUS!", status);
-            break;
-        }
-
-        if (*in_buf < CX_IOCTL_SIXDB_MIN || *in_buf > CX_IOCTL_SIXDB_MAX)
+        if (in_buf == NULL || in_len != sizeof(LONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid sixdb %d", *in_buf);
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting sixdb to %d", *in_buf);
-        dev_ctx->attrs.sixdb = *in_buf;
+        LONG value = *(PLONG)in_buf;
+
+        if (value < CX_IOCTL_SIXDB_MIN || value > CX_IOCTL_SIXDB_MAX)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid sixdb %d", value);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting sixdb to %d", value);
+        dev_ctx->attrs.sixdb = value;
         cx_set_level(dev_ctx);
         break;
+    }
 
     case CX_IOCTL_SET_CENTER_OFFSET:
-        status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
-
-        if (!NT_SUCCESS(status))
+    {
+        if (in_buf == NULL || in_len != sizeof(LONG))
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveInputBuffer (center_center) failed with status %!STATUS!", status);
-            break;
-        }
-
-        if (*in_buf < CX_IOCTL_CENTER_OFFSET_MIN || *in_buf > CX_IOCTL_CENTER_OFFSET_MAX)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid center_offset %d", *in_buf);
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting center_center to %d", *in_buf);
-        dev_ctx->attrs.center_offset = *in_buf;
+        LONG value = *(PLONG)in_buf;
+
+        if (value < CX_IOCTL_CENTER_OFFSET_MIN || value > CX_IOCTL_CENTER_OFFSET_MAX)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid center_offset %d", value);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting center_center to %d", value);
+        dev_ctx->attrs.center_offset = value;
         cx_set_center_offset(dev_ctx);
         break;
+    }
 
     default:
         status = STATUS_INVALID_DEVICE_REQUEST;
         break;
     }
 
+    WdfRequestSetInformation(req, (ULONG_PTR)out_len);
     WdfRequestComplete(req, status);
 }
 
