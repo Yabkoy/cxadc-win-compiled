@@ -25,12 +25,14 @@ public class Cxadc : IDisposable
     public const uint CX_IOCTL_GET_CENTER_OFFSET = 0x825;
     public const uint CX_IOCTL_GET_BUS_NUMBER = 0x830;
     public const uint CX_IOCTL_GET_DEVICE_ADDRESS = 0x831;
+    public const uint CX_IOCTL_GET_REGISTER = 0x82F;
     public const uint CX_IOCTL_RESET_OUFLOW_COUNT = 0x910;
     public const uint CX_IOCTL_SET_VMUX = 0x921;
     public const uint CX_IOCTL_SET_LEVEL = 0x922;
     public const uint CX_IOCTL_SET_TENBIT = 0x923;
     public const uint CX_IOCTL_SET_SIXDB = 0x924;
     public const uint CX_IOCTL_SET_CENTER_OFFSET = 0x925;
+    public const uint CX_IOCTL_SET_REGISTER = 0x92F;
 
     const uint FILE_DEVICE_UNKNOWN = 0x00000022;
     const uint METHOD_BUFFERED = 0;

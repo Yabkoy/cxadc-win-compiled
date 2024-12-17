@@ -49,6 +49,9 @@ VOID cx_reset_ouflow_state(_Inout_ PDEVICE_CONTEXT dev_ctx);
 #define CX_SRAM_CDT_BASE                        (CX_MEM_SRAM_BASE + 0x1000)
 #define CX_SRAM_CDT_BUF_BASE                    (CX_MEM_SRAM_BASE + 0x4000)
 
+#define CX_REGISTER_BASE                        0x200000
+#define CX_REGISTER_END                         (CX_REGISTER_BASE + 0x3CFFFF)
+
 #define CX_DMAC_DEVICE_CONTROL_2_ADDR           0x200034
 #define CX_MISC_PCI_INTERRUPT_MASK_ADDR         0x200040
 #define CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR       0x200050

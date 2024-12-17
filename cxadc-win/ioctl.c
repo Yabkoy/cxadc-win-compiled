@@ -162,6 +162,28 @@ VOID cx_evt_io_ctrl(
         break;
     }
 
+    case CX_IOCTL_GET_REGISTER:
+    {
+        if (out_buf == NULL || in_buf == NULL || in_len < sizeof(ULONG) || out_len != sizeof(ULONG))
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid data for get register %lld / %lld", in_len, out_len);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        ULONG address = *(PULONG)in_buf;
+
+        if (address < CX_REGISTER_BASE || address > CX_REGISTER_END)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "address %08X out of range", address);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *(PULONG)out_buf = cx_read(dev_ctx, address);
+        break;
+    }
+
     case CX_IOCTL_RESET_OUFLOW_COUNT:
     {
         TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "resetting over/underflow count (current: %d)", dev_ctx->state.ouflow_count);
@@ -170,7 +192,7 @@ VOID cx_evt_io_ctrl(
     }
 
     case CX_IOCTL_SET_VMUX:
-        {
+    {
         if (in_buf == NULL || in_len != sizeof(LONG))
         {
             status = STATUS_INVALID_PARAMETER;
@@ -193,7 +215,7 @@ VOID cx_evt_io_ctrl(
     }
 
     case CX_IOCTL_SET_LEVEL:
-        {
+    {
         if (in_buf == NULL || in_len != sizeof(LONG))
         {
             status = STATUS_INVALID_PARAMETER;
@@ -239,7 +261,7 @@ VOID cx_evt_io_ctrl(
     }
 
     case CX_IOCTL_SET_SIXDB:
-        {
+    {
         if (in_buf == NULL || in_len != sizeof(LONG))
         {
             status = STATUS_INVALID_PARAMETER;
@@ -281,6 +303,30 @@ VOID cx_evt_io_ctrl(
         TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting center_center to %d", value);
         dev_ctx->attrs.center_offset = value;
         cx_set_center_offset(dev_ctx);
+        break;
+    }
+
+    case CX_IOCTL_SET_REGISTER:
+    {
+        if (in_buf == NULL || in_len != 8)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid data for set register %lld", in_len);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        ULONG address = *(PULONG)in_buf;
+        ULONG value = *((PULONG)in_buf + 1);
+
+        if (address < CX_REGISTER_BASE || address > CX_REGISTER_END)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "address %08X out of range", address);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting %08X to %08X", value, address);
+        cx_write(dev_ctx, address, value);
         break;
     }
 

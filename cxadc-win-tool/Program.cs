@@ -105,6 +105,55 @@ setCommand.SetHandler((device, name, value) =>
 }, inputDeviceArg, setNameArg, setValueArg);
 
 
+// register command
+var registerAddressArg = new Argument<string>("address");
+var registerValueArg = new Argument<string>("value");
+
+var registerSetCommand = new Command("set")
+{
+    inputDeviceArg,
+    registerAddressArg,
+    registerValueArg
+};
+
+registerSetCommand.SetHandler((device, address, value) =>
+{
+    var buffer = new byte[8];
+    BinaryPrimitives.WriteUInt32LittleEndian(buffer, Convert.ToUInt32(address, 16));
+    BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan()[4..], Convert.ToUInt32(value, 16));
+
+    using var cx = new Cxadc(device);
+    cx.Set(Cxadc.CX_IOCTL_SET_REGISTER, buffer);
+
+}, inputDeviceArg, registerAddressArg, registerValueArg);
+
+var registerGetCommand = new Command("get")
+{
+    inputDeviceArg,
+    registerAddressArg
+};
+
+registerGetCommand.SetHandler((device, address) =>
+{
+    var buffer = new byte[4];
+    BinaryPrimitives.WriteUInt32LittleEndian(buffer, Convert.ToUInt32(address, 16));
+
+    using var cx = new Cxadc(device);
+    var value = cx.Get(Cxadc.CX_IOCTL_GET_REGISTER, buffer);
+
+    Console.WriteLine($"{value}");
+    Console.WriteLine($"0x{value:X8}");
+    Console.WriteLine($"0b{Convert.ToString(value, 2).PadLeft(32, '0')}");
+
+}, inputDeviceArg, registerAddressArg);
+
+var registerCommand = new Command("register", description: "get/set registers")
+{
+    registerGetCommand,
+    registerSetCommand
+};
+registerCommand.AddAlias("reg");
+
 // reset command
 var resetNameArg = new Argument<string>("name").FromAmong("ouflow_count");
 var resetCommand = new Command("reset", description: "reset device state")
@@ -358,6 +407,7 @@ var rootCommand = new RootCommand("cxadc-win-tool - https://github.com/JuniorIsA
     getCommand,
     setCommand,
     resetCommand,
+    registerCommand,
     clockgenCommand,
     levelAdjCommand
 };
