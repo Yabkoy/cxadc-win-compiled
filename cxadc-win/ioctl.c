@@ -325,7 +325,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting %08X to %08X", value, address);
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "writing %08X to %08X", value, address);
         cx_write(dev_ctx, address, value);
         break;
     }
