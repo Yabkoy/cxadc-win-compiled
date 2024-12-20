@@ -257,6 +257,15 @@ NTSTATUS cx_init_mmio(
     }
 
     dev_ctx->mmio_len = desc->u.Memory.Length;
+    dev_ctx->user_mdl = IoAllocateMdl((PVOID)dev_ctx->mmio, dev_ctx->mmio_len, FALSE, FALSE, NULL);
+
+    if (!dev_ctx->user_mdl)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "IoAllocateMdl failed");
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    MmBuildMdlForNonPagedPool(dev_ctx->user_mdl);
 
     return STATUS_SUCCESS;
 }

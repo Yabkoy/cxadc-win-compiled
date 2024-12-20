@@ -76,6 +76,7 @@ typedef struct _DEVICE_CONTEXT
 
     PULONG mmio;
     ULONG mmio_len;
+    PMDL user_mdl;
 
     DMA_DATA dma_risc_instr;
     DMA_DATA dma_risc_page[CX_VBI_BUF_COUNT + 1];
@@ -83,9 +84,15 @@ typedef struct _DEVICE_CONTEXT
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, cx_device_get_ctx)
 
+typedef struct _MMAP_DATA
+{
+    PVOID ptr;
+} MMAP_DATA, *PMMAP_DATA;
+
 typedef struct _FILE_CONTEXT
 {
     LONG64 read_offset;
+    MMAP_DATA mmap_data;
 } FILE_CONTEXT, *PFILE_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(FILE_CONTEXT, cx_file_get_ctx)

@@ -36,6 +36,7 @@ cx_evt_file_create(
 
     PFILE_CONTEXT file_ctx = cx_file_get_ctx(file_obj);
     file_ctx->read_offset = 0;
+    file_ctx->mmap_data = (MMAP_DATA){ 0 };
 
     WdfRequestComplete(req, status);
 }
@@ -68,9 +69,17 @@ cx_evt_file_cleanup(
 )
 {
     PAGED_CODE();
-    UNREFERENCED_PARAMETER(file_obj);
 
-    // nothing to do
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfFileObjectGetDevice(file_obj));
+    PFILE_CONTEXT file_ctx = cx_file_get_ctx(file_obj);
+
+    if (file_ctx->mmap_data.ptr != NULL)
+    {
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "munmap addr %p", file_ctx->mmap_data.ptr);
+
+        MmUnmapLockedPages(file_ctx->mmap_data.ptr, dev_ctx->user_mdl);
+        file_ctx->mmap_data.ptr = NULL;
+    }
 }
 
 VOID cx_evt_io_ctrl(
@@ -384,6 +393,41 @@ VOID cx_evt_io_ctrl(
 
         TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "writing %08X to %08X", data.val, data.addr);
         cx_write(dev_ctx, data.addr, data.val);
+        break;
+    }
+
+    case CX_IOCTL_MMAP:
+    {
+        if (out_buf == NULL || out_len != sizeof(MMAP_DATA))
+        {
+            status = STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (file_ctx->mmap_data.ptr == NULL)
+        {
+            file_ctx->mmap_data = (MMAP_DATA)
+            {
+                .ptr = MmMapLockedPagesSpecifyCache(dev_ctx->user_mdl, UserMode, MmNonCached, NULL, FALSE, NormalPagePriority)
+            };
+        }
+
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "mmap addr %p", file_ctx->mmap_data.ptr);
+
+        *(PMMAP_DATA)out_buf = file_ctx->mmap_data;
+        break;
+    }
+
+    case CX_IOCTL_MUNMAP:
+    {
+        if (file_ctx->mmap_data.ptr != NULL)
+        {
+            TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "munmap addr %p", file_ctx->mmap_data.ptr);
+
+            MmUnmapLockedPages(file_ctx->mmap_data.ptr, dev_ctx->user_mdl);
+            file_ctx->mmap_data.ptr = NULL;
+        }
+
         break;
     }
 
