@@ -19,3 +19,9 @@ VOID cx_evt_io_ctrl(_In_ WDFQUEUE queue, _In_ WDFREQUEST req, _In_ size_t out_le
 VOID cx_evt_io_read(_In_ WDFQUEUE queue, _In_ WDFREQUEST req, _In_ size_t len);
 
 __inline ULONG cx_get_page_no(_In_ ULONG initial_page, _In_ size_t off);
+
+typedef struct _SET_REGISTER_DATA
+{
+    ULONG addr;
+    ULONG val;
+} SET_REGISTER_DATA, *PSET_REGISTER_DATA;

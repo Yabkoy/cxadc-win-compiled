@@ -308,25 +308,24 @@ VOID cx_evt_io_ctrl(
 
     case CX_IOCTL_SET_REGISTER:
     {
-        if (in_buf == NULL || in_len != 8)
+        if (in_buf == NULL || in_len != sizeof(SET_REGISTER_DATA))
         {
             TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid data for set register %lld", in_len);
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        ULONG address = *(PULONG)in_buf;
-        ULONG value = *((PULONG)in_buf + 1);
+        SET_REGISTER_DATA data = *(PSET_REGISTER_DATA)in_buf;
 
-        if (address < CX_REGISTER_BASE || address > CX_REGISTER_END)
+        if (data.addr < CX_REGISTER_BASE || data.addr  > CX_REGISTER_END)
         {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "address %08X out of range", address);
+            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "address %08X out of range", data.addr);
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "writing %08X to %08X", value, address);
-        cx_write(dev_ctx, address, value);
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "writing %08X to %08X", data.val, data.addr);
+        cx_write(dev_ctx, data.addr, data.val);
         break;
     }
 
