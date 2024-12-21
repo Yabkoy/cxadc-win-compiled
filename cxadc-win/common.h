@@ -49,12 +49,10 @@ typedef struct _DEVICE_STATE
 {
     LONG last_gp_cnt;
     LONG initial_page;
-
-    LONG64 read_offset;
-    LONG64 last_read_offset;
+    
     ULONG ouflow_count;
 
-    WDFTIMER read_timer;
+    LONG reader_count;
     BOOLEAN is_capturing;
 } DEVICE_STATE, *PDEVICE_STATE;
 
@@ -85,10 +83,9 @@ typedef struct _DEVICE_CONTEXT
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, cx_device_get_ctx)
 
-#if !defined(ASSOC_WRITE_REQUEST_WITH_DMA_TRANSACTION)
-typedef struct TRANSACTION_CONTEXT {
-    WDFREQUEST Request;
-} TRANSACTION_CONTEXT, *PTRANSACTION_CONTEXT;
+typedef struct _FILE_CONTEXT
+{
+    LONG64 read_offset;
+} FILE_CONTEXT, *PFILE_CONTEXT;
 
-WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(TRANSACTION_CONTEXT, cx_get_transaction_ctx)
-#endif
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(FILE_CONTEXT, cx_file_get_ctx)

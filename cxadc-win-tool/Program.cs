@@ -40,12 +40,6 @@ captureCommand.SetHandler((device, output) =>
 {
     using (cx = new Cxadc(device))
     {
-        if (cx.Get(Cxadc.CX_IOCTL_GET_CAPTURE_STATE) == 1)
-        {
-            Console.WriteLine($"{device} already capturing");
-            return;
-        }
-
         using var stream = output == "-" ? Console.OpenStandardOutput() : File.Open(output, FileMode.Create);
         using var writer = new BinaryWriter(stream);
 

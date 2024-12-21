@@ -42,8 +42,6 @@ NTSTATUS cx_init_dma(_In_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_queue(_In_ PDEVICE_CONTEXT dev_ctx);
 VOID cx_init_attrs(_Inout_ PDEVICE_CONTEXT dev_ctx);
 VOID cx_init_state(_Inout_ PDEVICE_CONTEXT dev_ctx);
-NTSTATUS cx_init_timers(_In_ PDEVICE_CONTEXT dev_ctx);
-VOID cx_evt_timer_callback(_In_ WDFTIMER timer);
 
 NTSTATUS cx_check_dev_info(_In_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_read_device_prop(

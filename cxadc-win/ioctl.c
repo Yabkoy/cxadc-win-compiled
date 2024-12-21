@@ -17,16 +17,74 @@
 #include "ioctl.h"
 #include "cx2388x.h"
 
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text (PAGE, cx_evt_file_create)
+#pragma alloc_text (PAGE, cx_evt_file_close)
+#pragma alloc_text (PAGE, cx_evt_file_cleanup)
+#endif
+
+VOID
+cx_evt_file_create(
+    _In_ WDFDEVICE dev,
+    _In_ WDFREQUEST req,
+    _In_ WDFFILEOBJECT file_obj)
+{
+    UNREFERENCED_PARAMETER(dev);
+
+    NTSTATUS status = STATUS_SUCCESS;
+    PAGED_CODE();
+
+    PFILE_CONTEXT file_ctx = cx_file_get_ctx(file_obj);
+    file_ctx->read_offset = 0;
+
+    WdfRequestComplete(req, status);
+}
+
+VOID
+cx_evt_file_close(
+    _In_ WDFFILEOBJECT file_obj
+)
+{
+    PAGED_CODE();
+
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfFileObjectGetDevice(file_obj));
+    PFILE_CONTEXT file_ctx = cx_file_get_ctx(file_obj);
+
+    if (file_ctx->read_offset)
+    {
+        InterlockedDecrement(&dev_ctx->state.reader_count);
+
+        // stop capture if no other readers
+        if (!dev_ctx->state.reader_count)
+        {
+            cx_stop_capture(dev_ctx);
+        }
+    }
+}
+
+VOID
+cx_evt_file_cleanup(
+    _In_ WDFFILEOBJECT file_obj
+)
+{
+    PAGED_CODE();
+    UNREFERENCED_PARAMETER(file_obj);
+
+    // nothing to do
+}
+
 VOID cx_evt_io_ctrl(
     _In_ WDFQUEUE queue,
     _In_ WDFREQUEST req,
     _In_ size_t out_len,
     _In_ size_t in_len,
-    _In_ ULONG ctrl_code)
+    _In_ ULONG ctrl_code
+)
 {
     NTSTATUS status = STATUS_SUCCESS;
     PUCHAR out_buf = NULL, in_buf = NULL;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfIoQueueGetDevice(queue));
+    PFILE_CONTEXT file_ctx = cx_file_get_ctx(WdfRequestGetFileObject(req));
 
     if (out_len)
     {
@@ -346,7 +404,9 @@ VOID cx_evt_io_read(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfIoQueueGetDevice(queue));
+    PFILE_CONTEXT file_ctx = cx_file_get_ctx(WdfRequestGetFileObject(req));
 
+    // start capture if idle
     if (!dev_ctx->state.is_capturing)
     {
         KeClearEvent(&dev_ctx->isr_event);
@@ -361,7 +421,12 @@ VOID cx_evt_io_read(
         }
 
         InterlockedExchange(&dev_ctx->state.initial_page, dev_ctx->state.last_gp_cnt);
-        InterlockedExchange64(&dev_ctx->state.read_offset, 0);
+    }
+
+    // new reader, increment count
+    if (!file_ctx->read_offset)
+    {
+        InterlockedIncrement(&dev_ctx->state.reader_count);
     }
 
     WDFMEMORY mem;
@@ -375,7 +440,7 @@ VOID cx_evt_io_read(
     }
 
     LONG64 count = req_len;
-    LONG64 offset = dev_ctx->state.read_offset;
+    LONG64 offset = file_ctx->read_offset;
     LONG64 tgt_off = 0;
     LONG page_no = cx_get_page_no(dev_ctx->state.initial_page, offset);
 
@@ -398,8 +463,6 @@ VOID cx_evt_io_read(
                 WdfRequestComplete(req, STATUS_UNSUCCESSFUL);
                 return;
             }
-
-            RtlZeroMemory(&dev_ctx->dma_risc_page[page_no].va[page_off], len);
 
             count -= len;
             tgt_off += len;
@@ -434,7 +497,7 @@ VOID cx_evt_io_read(
 
     // our read request does not contain an offset,
     // so we keep track of it for the duration of the capture
-    InterlockedExchange64(&dev_ctx->state.read_offset, offset);
+    InterlockedExchange64(&file_ctx->read_offset, offset);
 
     WdfRequestCompleteWithInformation(req, status, req_len - count);
 }

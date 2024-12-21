@@ -33,7 +33,6 @@
 #pragma alloc_text (PAGE, cx_init_device_ctx)
 #pragma alloc_text (PAGE, cx_init_dma)
 #pragma alloc_text (PAGE, cx_init_queue)
-#pragma alloc_text (PAGE, cx_init_timers)
 #pragma alloc_text (PAGE, cx_check_dev_info)
 #pragma alloc_text (PAGE, cx_read_device_prop)
 #endif
@@ -91,6 +90,13 @@ NTSTATUS cx_evt_device_add(
     pnp_callbacks.EvtDeviceD0Entry = cx_evt_device_d0_entry;
     pnp_callbacks.EvtDeviceD0Exit = cx_evt_device_d0_exit;
     WdfDeviceInitSetPnpPowerEventCallbacks(dev_init, &pnp_callbacks);
+
+    // file callbacks
+    WDF_FILEOBJECT_CONFIG file_obj_cfg;
+    WDF_OBJECT_ATTRIBUTES file_attrs;
+    WDF_FILEOBJECT_CONFIG_INIT(&file_obj_cfg, cx_evt_file_create, cx_evt_file_close, cx_evt_file_cleanup);
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&file_attrs, FILE_CONTEXT);
+    WdfDeviceInitSetFileObjectConfig(dev_init, &file_obj_cfg, &file_attrs);
 
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&dev_attrs, DEVICE_CONTEXT);
     dev_attrs.EvtCleanupCallback = cx_evt_device_cleanup;
@@ -412,15 +418,6 @@ NTSTATUS cx_init_device_ctx(
     // init interrupt event
     KeInitializeEvent(&dev_ctx->isr_event, NotificationEvent, FALSE);
 
-    // init periodic timeout timer
-    status = cx_init_timers(dev_ctx);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_init_timers failed with status %!STATUS!", status);
-        return status;
-    }
-
     return status;
 }
 
@@ -560,55 +557,6 @@ VOID cx_init_state(
 )
 {
     dev_ctx->state = (DEVICE_STATE) { 0 };
-}
-
-NTSTATUS cx_init_timers(
-    _In_ PDEVICE_CONTEXT dev_ctx
-)
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PAGED_CODE();
-
-    WDF_TIMER_CONFIG cfg;
-    WDF_OBJECT_ATTRIBUTES attrs;
-
-    WDF_TIMER_CONFIG_INIT_PERIODIC(&cfg, &cx_evt_timer_callback, READ_TIMEOUT);
-    WDF_OBJECT_ATTRIBUTES_INIT(&attrs);
-    attrs.ParentObject = dev_ctx->dev;
-
-    status = WdfTimerCreate(&cfg, &attrs, &dev_ctx->state.read_timer);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL,
-            "WdfTimerCreate (WdfRequestTypeRead) failed with status %!STATUS!", status);
-        return status;
-    }
-
-    // we do not use events for opening/closing the device
-    // check every N seconds if there has been a new read
-    WdfTimerStart(dev_ctx->state.read_timer, WDF_REL_TIMEOUT_IN_MS(READ_TIMEOUT));
-
-    return status;
-}
-
-VOID cx_evt_timer_callback(
-    _In_ WDFTIMER timer
-)
-{
-    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfTimerGetParentObject(timer));
-
-    if (dev_ctx->state.is_capturing)
-    {
-        if (dev_ctx->state.read_offset == dev_ctx->state.last_read_offset)
-        {
-            // offset has not been updated since last callback
-            cx_stop_capture(dev_ctx);
-            return;
-        }
-
-        dev_ctx->state.last_read_offset = dev_ctx->state.read_offset;
-    }
 }
 
 NTSTATUS cx_check_dev_info(

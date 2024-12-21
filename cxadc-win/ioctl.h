@@ -15,6 +15,10 @@
 
 #include "common.h"
 
+EVT_WDF_DEVICE_FILE_CREATE cx_evt_file_create;
+EVT_WDF_FILE_CLOSE cx_evt_file_close;
+EVT_WDF_FILE_CLEANUP cx_evt_file_cleanup;
+
 VOID cx_evt_io_ctrl(_In_ WDFQUEUE queue, _In_ WDFREQUEST req, _In_ size_t out_len, _In_ size_t in_len, _In_ ULONG ctrl_code);
 VOID cx_evt_io_read(_In_ WDFQUEUE queue, _In_ WDFREQUEST req, _In_ size_t len);
 
