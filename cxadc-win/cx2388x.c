@@ -211,19 +211,19 @@ NTSTATUS cx_init_cdt(
     }
 
     // size of one buffer - 1
-    cx_write(dev_ctx, CX_DMAC_DMA_CNT1_ADDR,
+    cx_write(dev_ctx, CX_DMAC_VBI_CNT1_ADDR,
         (CX_DMAC_DMA_CNT1) {
             .dma_cnt1 = CX_CDT_BUF_LEN / 8 - 1
         }.dword);
 
     // ptr to cdt
-    cx_write(dev_ctx, CX_DMAC_DMA_PTR2_ADDR,
+    cx_write(dev_ctx, CX_DMAC_VBI_PTR2_ADDR,
         (CX_DMAC_DMA_PTR2) {
             .dma_ptr2 = CX_SRAM_CDT_BASE >> 2
         }.dword);
 
     // size of cdt
-    cx_write(dev_ctx, CX_DMAC_DMA_CNT2_ADDR,
+    cx_write(dev_ctx, CX_DMAC_VBI_CNT2_ADDR,
         (CX_DMAC_DMA_CNT2) {
             .dma_cnt2 = CX_CDT_BUF_COUNT * 2
         }.dword);
@@ -314,7 +314,7 @@ NTSTATUS cx_init_cmds(
     NTSTATUS status = STATUS_SUCCESS;
 
     // init sram
-    cx_write_buf8(dev_ctx, CX_SRAM_CMDS_BASE,
+    cx_write_buf8(dev_ctx, CX_SRAM_CMDS_VBI_BASE,
         (CX_CMDS) {
             .initial_risc_addr = dev_ctx->dma_risc_instr.la.LowPart,
             .cdt_base = CX_SRAM_CDT_BASE,
@@ -439,7 +439,7 @@ BOOLEAN cx_evt_isr(
         .dword = cx_read(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_MSTATUS_ADDR)
     };
 
-    if (!mstat.vbi_riscl1 && mstat.dword)
+    if (!mstat.vbi_risci1 && mstat.dword)
     {
         // unexpected interrupts?
         TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "intr stat 0x%0X masked 0x%0X",
@@ -447,7 +447,7 @@ BOOLEAN cx_evt_isr(
             mstat.dword);
     }
 
-    if (mstat.vbi_riscl1)
+    if (mstat.vbi_risci1)
     {
         is_recognized = TRUE;
     }
@@ -547,8 +547,8 @@ VOID cx_start_capture(
     // turn on interrupt
     cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR,
         (CX_DMAC_VIDEO_INTERRUPT) {
-            .vbi_riscl1 = 1,
-            .vbi_riscl2 = 1,
+            .vbi_risci1 = 1,
+            .vbi_risci2 = 1,
             .vbif_of = 1,
             .vbi_sync = 1,
             .opc_err = 1

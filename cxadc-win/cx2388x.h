@@ -44,7 +44,7 @@ VOID cx_reset_ouflow_state(_Inout_ PDEVICE_CONTEXT dev_ctx);
 #define CX_IRQ_PERIOD_IN_PAGES                  (0x200000 >> PAGE_SHIFT)
 
 #define CX_MEM_SRAM_BASE                        0x180000
-#define CX_SRAM_CMDS_BASE                       (CX_MEM_SRAM_BASE + 0x0100)
+#define CX_SRAM_CMDS_VBI_BASE                   (CX_MEM_SRAM_BASE + 0x0100)
 #define CX_SRAM_RISC_QUEUE_BASE                 (CX_MEM_SRAM_BASE + 0x0800)
 #define CX_SRAM_CDT_BASE                        (CX_MEM_SRAM_BASE + 0x1000)
 #define CX_SRAM_CDT_BUF_BASE                    (CX_MEM_SRAM_BASE + 0x4000)
@@ -57,9 +57,9 @@ VOID cx_reset_ouflow_state(_Inout_ PDEVICE_CONTEXT dev_ctx);
 #define CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR       0x200050
 #define CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR     0x200054
 #define CX_DMAC_VIDEO_INTERRUPT_MSTATUS_ADDR    0x200058
-#define CX_DMAC_DMA_PTR2_ADDR                   0x3000CC
-#define CX_DMAC_DMA_CNT1_ADDR                   0x30010C
-#define CX_DMAC_DMA_CNT2_ADDR                   0x30014C
+#define CX_DMAC_VBI_PTR2_ADDR                   0x3000CC
+#define CX_DMAC_VBI_CNT1_ADDR                   0x30010C
+#define CX_DMAC_VBI_CNT2_ADDR                   0x30014C
 #define CX_VIDEO_DEVICE_STATUS_ADDR             0x310100
 #define CX_VIDEO_INPUT_FORMAT_ADDR              0x310104
 #define CX_VIDEO_CONTRAST_BRIGHTNESS_ADDR       0x310110
@@ -133,14 +133,14 @@ typedef union
 {
     struct
     {
-        ULONG y_riscl1              : 1;
-        ULONG u_riscl1              : 1;
-        ULONG v_riscl1              : 1;
-        ULONG vbi_riscl1            : 1;
-        ULONG y_riscl2              : 1;
-        ULONG u_riscl2              : 1;
-        ULONG v_riscl2              : 1;
-        ULONG vbi_riscl2            : 1;
+        ULONG y_risci1              : 1;
+        ULONG u_risci1              : 1;
+        ULONG v_risci1              : 1;
+        ULONG vbi_risci1            : 1;
+        ULONG y_risci2              : 1;
+        ULONG u_risci2              : 1;
+        ULONG v_risci2              : 1;
+        ULONG vbi_risci2            : 1;
         ULONG yf_of                 : 1;
         ULONG uf_of                 : 1;
         ULONG vf_of                 : 1;
