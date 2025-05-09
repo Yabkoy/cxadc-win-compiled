@@ -98,5 +98,21 @@ Due to various security features in Windows 10/11, Secure Boot and Signature Enf
 ## Disclaimer
 I take absolutely no responsibility for (including but not limited to) any crashes, instability, security vulnerabilities or interactions with anti-virus/anti-cheat software, nor do I guarantee the accuracy of captures.  
 
+## My Compilation
+Now you are at my fork repository, where i store a compiled windows version of the driver.
+### **IMPORTENT!**
+You need to be really sure that you know what you're doing!
+You're downloading a compiled version of a GitHub project, so it could be anything. You shouldn't trust any compiled version on GitHub — **NOT EVEN THIS ONE!**
+
+So before installing this on your main PC, test it on a virtual machine or an old, unused PC without internet access to make sure it's really what you want.
+
+You've been informed, so I'm in the clear now. 😊
+
+### **MY SCAN**
+Another thing is that when I scanned this compiled artifact with VirusTotal, I noticed that SecureAge flagged it as malicious.
+This is a Windows driver, so it uses low-level instructions that antivirus software typically doesn't like... 😵
+
+![VirusTotal Scan](assets/VTScan.jpg)  
+
 ## Credits
 This is based on the [Linux cxadc driver](https://github.com/happycube/cxadc-linux3), without which this would not exist.  
